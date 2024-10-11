@@ -1,0 +1,17 @@
+name: deepCRE
+channels:
+- conda-forge
+- defaults
+dependencies:
+- python=3.9
+- tensorflow-gpu=2.10.0
+
+- pip
+- pip:
+  - git+https://github.com/AvantiShri/shap.git
+  - altair==5.4.1
+  - biopython==1.81
+  - deeplift==0.6.13.0
+  - numpy==1.26.4
+  - pandas==2.2.3
+  - streamlit==1.37.1
