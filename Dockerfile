@@ -8,7 +8,7 @@ RUN . ~/.bashrc
 
 # Clone and set up the app
 WORKDIR /app
-RUN git clone https://github.com/PelFritz/streamlit_deepcre_app .
+RUN git clone https://github.com/NAMlab/streamlit_deepcre_app .
 RUN micromamba env create -f conda-env.yml -y
 
 # Activate the environment and run the app on startup
