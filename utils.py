@@ -7,7 +7,9 @@ from deeplift.dinuc_shuffle import dinuc_shuffle
 import shap
 import streamlit as st
 from tensorflow.keras.models import load_model
-
+import gzip
+from mimetypes import guess_type
+from functools import partial
 
 def one_hot_encode(sequence: str,
                    alphabet: str = 'ACGT',
@@ -40,17 +42,34 @@ def compute_gc(enc_seq):
     return len(c_count)/enc_seq.shape[0]
 
 @st.cache_data
-def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500):
-    genome = SeqIO.to_dict(SeqIO.parse(StringIO(genome.getvalue().decode("utf-8")), format='fasta'))
-    genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()[-1000:]
-    if annot.name.endswith('gtf'):
-        gene_models = read_gtf(annot)
-        gene_models = gene_models[gene_models['Feature'] == 'gene']
-        gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'gene_id']]
+def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new=False):
+    if new:
+        genome = SeqIO.to_dict(SeqIO.parse(StringIO(genome.getvalue().decode("utf-8")), format='fasta'))
     else:
-        gene_models = read_gff3(annot)
-        gene_models = gene_models[gene_models['Feature'] == 'gene']
-        gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'ID']]
+        encoding = guess_type(genome)[1]  # uses file extension
+        _open = partial(gzip.open, mode='rt') if encoding == 'gzip' else open
+        with _open(genome) as f:
+            genome = SeqIO.to_dict(SeqIO.parse(f, format='fasta'))
+
+    genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()[-1000:]
+    if new:
+        if annot.name.endswith(('gtf', 'gtf.gz')):
+            gene_models = read_gtf(annot, new=new)
+            gene_models = gene_models[gene_models['Feature'] == 'gene']
+            gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'gene_id']]
+        else:
+            gene_models = read_gff3(annot, new=new)
+            gene_models = gene_models[gene_models['Feature'] == 'gene']
+            gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'ID']]
+    else:
+        if annot.endswith(('gtf', 'gtf.gz')):
+            gene_models = read_gtf(annot, new=new)
+            gene_models = gene_models[gene_models['Feature'] == 'gene']
+            gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'gene_id']]
+        else:
+            gene_models = read_gff3(annot, new=new)
+            gene_models = gene_models[gene_models['Feature'] == 'gene']
+            gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'ID']]
 
     gene_models.columns = ['Chromosome', 'Start', 'End', 'Strand', 'gene_id']
     gene_models = gene_models[gene_models['gene_id'].isin(genes)]
@@ -250,11 +269,17 @@ def to_rows_gff3(anno):
     return pd.DataFrame.from_records(rowdicts).set_index(anno.index)
 
 
-def read_gtf(file_name):
+def read_gtf(file_name, new=False):
     names = "Chromosome Source Feature Start End Score Strand Frame Attribute".split()
-    df_iter = pd.read_csv(StringIO(file_name.getvalue().decode("utf-8")), header=None, comment='#', sep='\t',
-                          dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                          names=names, chunksize=int(1e5))
+    if new:
+        df_iter = pd.read_csv(str(gzip.decompress(open(file_name, 'rb').read()), 'utf-8'), header=None, comment='#', sep='\t',
+                              dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
+                              names=names, chunksize=int(1e5))
+
+    else:
+        df_iter = pd.read_csv(file_name, header=None, comment='#', sep='\t',
+                              dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
+                              names=names, chunksize=int(1e5))
 
     dfs = []
     for df in df_iter:
@@ -271,12 +296,17 @@ def read_gtf(file_name):
     return df
 
 
-def read_gff3(file_name):
+def read_gff3(file_name, new=False):
     names = "Chromosome Source Feature Start End Score Strand Frame Attribute".split()
-    df_iter = pd.read_csv(StringIO(file_name.getvalue().decode("utf-8")), header=None, comment='#', sep='\t',
-                          dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                          names=names, chunksize=int(1e5))
+    if new:
+        df_iter = pd.read_csv(StringIO(file_name.getvalue().decode("utf-8")), header=None, comment='#', sep='\t',
+                              dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
+                              names=names, chunksize=int(1e5))
 
+    else:
+        df_iter = pd.read_csv(file_name, header=None, comment='#', sep='\t',
+                              dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
+                              names=names, chunksize=int(1e5))
     dfs = []
     for df in df_iter:
         extra = to_rows_gff3(df.Attribute.astype(str))
