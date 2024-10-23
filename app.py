@@ -547,13 +547,9 @@ def main():
                                 if snp_region == 'Promoter':
                                     snp_pos = snp_pos - prom_start - 1 if snp_pos != prom_start else 0
                                     snp_pos = 0+snp_pos
-                                    ref_pos = st.session_state['cis_seq'][snp_pos]
-                                    st.write(ref_pos)
                                 else:
                                     snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
                                     snp_pos = 1520+snp_pos
-                                    ref_pos = st.session_state['cis_seq'][snp_pos]
-                                    st.write(ref_pos)
                             else:
                                 if snp_region == 'Promoter':
                                     snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
@@ -656,7 +652,7 @@ def main():
                                         x=alt.datum(snp_pos),
                                         color=alt.value("silver")
                                     )
-                                    saliency_chart_high = saliency_chart_high + annotation_layer + rule + snp_rule + snp_annotation_layer
+                                    saliency_chart_high = saliency_chart_high + snp_rule + snp_annotation_layer + rule + annotation_layer
                                     st.altair_chart(saliency_chart_high, use_container_width=True, theme=None)
 
                     else:
