@@ -2,7 +2,7 @@
 To install required packages, run 
 
 ```
-conda create env -f conda-env.yml
+conda env create -f conda-env.yml
 ```
 
 ## Usage
