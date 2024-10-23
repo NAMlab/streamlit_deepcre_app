@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from typing import Any
 from Bio import SeqIO
-from io import StringIO
+from io import StringIO, BytesIO
 from deeplift.dinuc_shuffle import dinuc_shuffle
 import shap
 import streamlit as st
@@ -44,7 +44,12 @@ def compute_gc(enc_seq):
 @st.cache_data
 def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new=False):
     if new:
-        genome = SeqIO.to_dict(SeqIO.parse(StringIO(genome.getvalue().decode("utf-8")), format='fasta'))
+        if genome.name.endswith('.gz'):
+            genome = BytesIO(genome.read())
+            with gzip.open(filename=genome, mode='rt') as f:
+                genome = SeqIO.to_dict(SeqIO.parse(f, format='fasta'))
+        else:
+            genome = SeqIO.to_dict(SeqIO.parse(StringIO(genome.getvalue().decode("utf-8")), format='fasta'))
     else:
         encoding = guess_type(genome)[1]  # uses file extension
         _open = partial(gzip.open, mode='rt') if encoding == 'gzip' else open
@@ -272,9 +277,15 @@ def to_rows_gff3(anno):
 def read_gtf(file_name, new=False):
     names = "Chromosome Source Feature Start End Score Strand Frame Attribute".split()
     if new:
-        df_iter = pd.read_csv(str(gzip.decompress(open(file_name, 'rb').read()), 'utf-8'), header=None, comment='#', sep='\t',
-                              dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                              names=names, chunksize=int(1e5))
+        if file_name.name.endswith('.gz'):
+            gtf_file = BytesIO(file_name.read())
+            df_iter = pd.read_csv(gtf_file, header=None, comment='#', sep='\t', compression='gzip',
+                                  dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
+                                  names=names, chunksize=int(1e5))
+        else:
+            df_iter = pd.read_csv(StringIO(file_name.getvalue().decode("utf-8")), header=None, comment='#', sep='\t',
+                                  dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
+                                  names=names, chunksize=int(1e5))
 
     else:
         df_iter = pd.read_csv(file_name, header=None, comment='#', sep='\t',
@@ -299,9 +310,15 @@ def read_gtf(file_name, new=False):
 def read_gff3(file_name, new=False):
     names = "Chromosome Source Feature Start End Score Strand Frame Attribute".split()
     if new:
-        df_iter = pd.read_csv(StringIO(file_name.getvalue().decode("utf-8")), header=None, comment='#', sep='\t',
-                              dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                              names=names, chunksize=int(1e5))
+        if file_name.name.endswith('.gz'):
+            gtf_file = BytesIO(file_name.read())
+            df_iter = pd.read_csv(gtf_file, header=None, comment='#', sep='\t', compression='gzip',
+                                  dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
+                                  names=names, chunksize=int(1e5))
+        else:
+            df_iter = pd.read_csv(StringIO(file_name.getvalue().decode("utf-8")), header=None, comment='#', sep='\t',
+                                  dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
+                                  names=names, chunksize=int(1e5))
 
     else:
         df_iter = pd.read_csv(file_name, header=None, comment='#', sep='\t',
@@ -321,3 +338,14 @@ def read_gff3(file_name, new=False):
 
     return df
 
+@st.cache_data
+def prepare_vcf(uploaded_file):
+    lines = []
+    with gzip.open(filename=uploaded_file, mode='rt') as fin:
+        for line in fin.readlines()[:30]:
+            if not line.startswith('#'):
+                lines.append(line.split('\n')[0].split('\t')[:5])
+    lines = pd.DataFrame(lines)
+    lines[5] = ['SNP' if len(x[3]) == len(x[4]) == 1 else 'INDEL' for x in lines.values]
+    lines = lines[lines[5] == 'SNP']
+    return lines

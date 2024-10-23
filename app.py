@@ -2,11 +2,12 @@ import os
 from datetime import datetime
 import numpy as np
 import streamlit as st
-from utils import prepare_dataset, extract_scores, make_predictions, one_hot_to_dna, one_hot_encode
+from utils import prepare_dataset, extract_scores, make_predictions, one_hot_to_dna, one_hot_encode, prepare_vcf
 import pandas as pd
 import itertools
 import altair as alt
 import tensorflow as tf
+import io
 tf.compat.v1.disable_eager_execution()
 tf.compat.v1.disable_v2_behavior()
 tf.config.set_visible_devices([], 'GPU')
@@ -16,10 +17,10 @@ def main():
     st.set_page_config(layout="wide", page_title='deepCRE')
     color_palette_low_high = ['#4F1787', '#EB3678']
     species = sorted([x.split(".")[0] for x in os.listdir('species')])
-    species.append("None")
+    species.append("New")
     model_names = sorted([x.split('.')[0] for x in os.listdir('models')])
 
-    organism = st.sidebar.selectbox(label=":four_leaf_clover: Species ( Select **None** for a new species )",
+    organism = st.sidebar.selectbox(label=":four_leaf_clover: Species ( Select **New** for a new species )",
                                     options=species)
     # Logo of lab and link
     lab_logo, lab_name, _ = st.columns([0.1, 0.1, 0.9], vertical_alignment='bottom', gap='small')
@@ -35,7 +36,7 @@ def main():
     ### Three main Tabs
     preds_tab, interpret_tab, mutations_tab = st.tabs(['Predictions', 'Saliency Maps', 'Mutation Analysis'])
 
-    if organism == "None":
+    if organism == "New":
         genome = st.sidebar.file_uploader(label="genome", help="upload a reference genome in FASTA format")
         annot = st.sidebar.file_uploader(label="gtf/gff3", help="upload a gtf/gff3 file")
         new = True
@@ -50,7 +51,7 @@ def main():
                                            Each gene ID must be on a new line. If genes are more than 1000, the
                                            first 1000 genes will be analysed.""")
     deepcre_model = st.sidebar.selectbox(label="Choose deepCRE model", options=model_names, )
-    if genome is not None and annot is not None and genes_list is not None and deepcre_model != "None":
+    if genome is not None and annot is not None and genes_list is not None:
         x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont = prepare_dataset(genome=genome,
                                                                                                     annot=annot,
                                                                                                     gene_list=genes_list,
@@ -196,7 +197,7 @@ def main():
                 text_y = max_saliency+mean_pos_saliency
 
                 annotations = [
-                    (1000, text_y, "TTS", "Transcription Start Site"),
+                    (1000, text_y, "TSS", "Transcription Start Site"),
                     (2020, text_y, "TTS", "Transcription Termination site"),
                 ]
                 annotations_df = pd.DataFrame(
@@ -276,7 +277,7 @@ def main():
                     text_y = max_saliency + mean_pos_saliency
 
                     annotations = [
-                        (1000, text_y, "TTS", "Transcription Start Site"),
+                        (1000, text_y, "TSS", "Transcription Start Site"),
                         (2020, text_y, "TTS", "Transcription Termination site"),
                     ]
                     annotations_df = pd.DataFrame(
@@ -328,8 +329,8 @@ def main():
         with mutations_tab:
             mut_col, _ = st.columns([0.1, 0.9])
             with mut_col:
-                mutate_analysis_type = st.selectbox('Type of mutation analysis', options=['In silico', 'VCF'])
-            if mutate_analysis_type == 'In silico':
+                mutate_analysis_type = st.selectbox('Type of mutation analysis', options=['manual', 'VCF'])
+            if mutate_analysis_type == 'manual':
                 gene_col, _ = st.columns([0.3, 0.7])
                 with gene_col:
                     gene_id = st.selectbox(label='Choose gene', options=gene_ids)
@@ -458,7 +459,7 @@ def main():
                     text_y = max_saliency + mean_pos_saliency
 
                     annotations = [
-                        (1000, text_y, "TTS", "Transcription Start Site"),
+                        (1000, text_y, "TSS", "Transcription Start Site"),
                         (2020, text_y, "TTS", "Transcription Termination site"),
                     ]
                     annotations_df = pd.DataFrame(
@@ -486,6 +487,21 @@ def main():
                     st.session_state.prom_seq = seq[:1500]
                     st.session_state.term_seq = seq[1520:]
                 st.button('Reset', type="primary", on_click=reset_seq)
+
+            else:
+                file_upload, _ = st.columns([0.2, 0.7])
+                with file_upload:
+                    vcf_file = st.file_uploader(label='VCF file', accept_multiple_files=False)
+                if vcf_file is not None:
+                    if vcf_file.name.endswith('.gz'):
+                        vcf_file = io.BytesIO(vcf_file.read())
+                        vcf_df = prepare_vcf(uploaded_file=vcf_file)
+                        st.write(vcf_df)
+                    else:
+                        st.write(':red[Warning: Please upload a .gz file]')
+
+
+
 
 
 if __name__ == '__main__':
