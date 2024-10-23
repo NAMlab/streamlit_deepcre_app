@@ -1,3 +1,5 @@
+from email.policy import default
+
 import numpy as np
 import pandas as pd
 from typing import Any
@@ -81,7 +83,7 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new
 
     expected_final_size = 2 * (upstream + downstream) + 20
 
-    x, gene_ids, gene_sizes, gene_chroms, gene_starts, gene_ends, gene_gc_content = [], [], [], [], [], [], []
+    x, gene_ids, gene_sizes, gene_chroms, gene_starts, gene_ends, gene_gc_content, gene_strand = [], [], [], [], [], [], [], []
     for chrom, start, end, strand, gene_id in gene_models.values:
         gene_size = end - start
         extractable_downstream = downstream if gene_size // 2 > downstream else gene_size // 2
@@ -116,9 +118,10 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new
             gene_ends.append(end)
             gene_sizes.append(gene_size)
             gene_gc_content.append(compute_gc(seq))
+            gene_strand.append(strand)
 
     x = np.array(x)
-    return x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_sizes, gene_gc_content
+    return x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_sizes, gene_gc_content, gene_strand
 
 
 def dinuc_shuffle_several_times(list_containing_input_modes_for_an_example, seed=1234):
@@ -342,10 +345,22 @@ def read_gff3(file_name, new=False):
 def prepare_vcf(uploaded_file):
     lines = []
     with gzip.open(filename=uploaded_file, mode='rt') as fin:
-        for line in fin.readlines()[:30]:
+        for line in fin.readlines():
             if not line.startswith('#'):
                 lines.append(line.split('\n')[0].split('\t')[:5])
     lines = pd.DataFrame(lines)
     lines[5] = ['SNP' if len(x[3]) == len(x[4]) == 1 else 'INDEL' for x in lines.values]
     lines = lines[lines[5] == 'SNP']
+    lines.columns = ['Chrom', 'Pos', 'ID', 'Ref', 'Alt', 'Annot']
+    lines['Pos'] = lines['Pos'].astype('int')
+    lines.reset_index(inplace=True, drop=True)
     return lines
+
+
+def dataframe_with_selections(df):#
+    event = st.dataframe(df,
+                         on_select='rerun',
+                         selection_mode='single-row',
+                         use_container_width=True)
+    selection_info = event['selection']
+    return df.loc[selection_info['rows']]

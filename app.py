@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import streamlit as st
 from utils import prepare_dataset, extract_scores, make_predictions, one_hot_to_dna, one_hot_encode, prepare_vcf
+from utils import dataframe_with_selections
 import pandas as pd
 import itertools
 import altair as alt
@@ -37,8 +38,12 @@ def main():
     preds_tab, interpret_tab, mutations_tab = st.tabs(['Predictions', 'Saliency Maps', 'Mutation Analysis'])
 
     if organism == "New":
-        genome = st.sidebar.file_uploader(label="genome", help="upload a reference genome in FASTA format")
-        annot = st.sidebar.file_uploader(label="gtf/gff3", help="upload a gtf/gff3 file")
+        genome = st.sidebar.file_uploader(label="genome",
+                                          help="""upload a genome in FASTA format. File should be in .gz format, for example
+                                          Zea_mays.Zm-B73-REFERENCE-NAM-5.0.dna.toplevel.fa.gz""")
+        annot = st.sidebar.file_uploader(label="gtf/gff3",
+                                         help="""upload a gtf/gff3 file. File should be in .gz format, for example
+                                         Zea_mays.Zm-B73-REFERENCE-NAM-5.0.60.gtf.gz""")
         new = True
     else:
         genome = [x for x in os.listdir('species') if x.startswith(organism)][0]
@@ -52,10 +57,10 @@ def main():
                                            first 1000 genes will be analysed.""")
     deepcre_model = st.sidebar.selectbox(label="Choose deepCRE model", options=model_names, )
     if genome is not None and annot is not None and genes_list is not None:
-        x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont = prepare_dataset(genome=genome,
-                                                                                                    annot=annot,
-                                                                                                    gene_list=genes_list,
-                                                                                                    new=new)
+        x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
+                                                                                                                  annot=annot,
+                                                                                                                  gene_list=genes_list,
+                                                                                                                  new=new)
         preds = make_predictions(model=f'models/{deepcre_model}.h5', x=x)
         with preds_tab:
             predictions = pd.DataFrame(data={'Gene ID': gene_ids, 'Chromosome': [f'Chr: {i}' for i in gene_chroms],
@@ -419,9 +424,9 @@ def main():
                                                                        model=f'models/{deepcre_model}.h5',
                                                                        separate=False)
 
-                pred_chart = alt.Chart(pd.DataFrame({'Predicted Probabilities':pred_probs,
+                pred_chart = alt.Chart(pd.DataFrame({'Probability of high expression':pred_probs,
                                                      'Gene ID': [gene_id, f'{gene_id}: Mutated']})).mark_bar()\
-                    .encode(x='Gene ID:N', y='Predicted Probabilities',
+                    .encode(x='Gene ID:N', y='Probability of high expression',
                             color=alt.Color('Gene ID:N', scale=alt.Scale(range=['grey', '#33BBC5'],
                                                     domain=[gene_id, f'{gene_id}: Mutated'])))
 
@@ -467,7 +472,7 @@ def main():
                     )
                     annotation_layer = (
                         alt.Chart(annotations_df)
-                        .mark_text(size=15, dx=-10, dy=0, align="center")
+                        .mark_text(size=12, dx=0, dy=0, align="center")
                         .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
                                 y=alt.Y("Saliency Score:Q"), text="marker",
                                 tooltip="description")
@@ -489,14 +494,171 @@ def main():
                 st.button('Reset', type="primary", on_click=reset_seq)
 
             else:
-                file_upload, _ = st.columns([0.2, 0.7])
+                file_upload, _ = st.columns([0.3, 0.7])
                 with file_upload:
                     vcf_file = st.file_uploader(label='VCF file', accept_multiple_files=False)
                 if vcf_file is not None:
                     if vcf_file.name.endswith('.gz'):
                         vcf_file = io.BytesIO(vcf_file.read())
                         vcf_df = prepare_vcf(uploaded_file=vcf_file)
-                        st.write(vcf_df)
+                        vcf_col, gene_col, _ = st.columns([0.4, 0.5, 0.1], vertical_alignment='center')
+                        with vcf_col:
+                            st.write('Here are your first 50 SNPs')
+                            st.dataframe(vcf_df.head(50))
+                        with gene_col:
+                            gene_id = st.selectbox(label='Choose gene', options=gene_ids)
+                            seq = one_hot_to_dna(x[gene_ids.index(gene_id)])[0]
+                            strand = gene_strands[gene_ids.index(gene_id)]
+                            start, end = gene_starts[gene_ids.index(gene_id)], gene_ends[gene_ids.index(gene_id)]
+                            chrom = gene_chroms[gene_ids.index(gene_id)]
+                            snps_in_prom = vcf_df[(vcf_df['Pos'] > start - 1000) & (vcf_df['Pos'] < start + 500) & (vcf_df['Chrom'] == chrom)]
+                            snps_in_term = vcf_df[(vcf_df['Pos'] > end - 500) & (vcf_df['Pos'] < end + 1000) & (vcf_df['Chrom'] == chrom)]
+                            if strand == '+':
+                                snps_in_prom['Region'] = ['Promoter']*snps_in_prom.shape[0]
+                                snps_in_term['Region'] = ['Terminator']*snps_in_term.shape[0]
+                            else:
+                                snps_in_prom['Region'] = ['Terminator'] * snps_in_prom.shape[0]
+                                snps_in_term['Region'] = ['Promoter'] * snps_in_term.shape[0]
+                            snps_cis_regions = pd.concat([snps_in_prom, snps_in_term], axis=0)
+                            snps_cis_regions['Strand'] = [strand]*snps_cis_regions.shape[0]
+                            snps_cis_regions.sort_values(by='Region', ascending=True, inplace=True)
+                            snps_cis_regions.reset_index(drop=True, inplace=True)
+                            if 'current_gene' not in st.session_state:
+                                st.session_state.current_gene = gene_id
+                            st.write(f'These are the SNPs in the cis-regulatory regions of ' + f':blue[{gene_id}]')
+                            selection = dataframe_with_selections(df=snps_cis_regions)
+                            st.write('Here is your selected SNP')
+                            st.dataframe(selection, use_container_width=True)
+                        if not selection.empty:
+                            prom_start, prom_end = start-1000, start+500
+                            term_start, term_end = end-500, end+1000
+                            snp_pos, snp_region = selection['Pos'].values[0], selection['Region'].values[0]
+                            ref_allele, alt_allele = selection['Ref'].values[0], selection['Alt'].values[0]
+                            complements = {'A':'T', 'T':'A', 'C':'G', 'G':'C', 'N':'N'}
+
+                            # Initialize session cis-regulatory sequence ---------------------------
+
+                            if "cis_seq" not in st.session_state:
+                                st.session_state['cis_seq'] = seq
+                            if st.session_state.current_gene != gene_id:
+                                st.session_state.current_gene = gene_id
+                                st.session_state['cis_seq'] = seq
+                            if strand == '+':
+                                if snp_region == 'Promoter':
+                                    snp_pos = snp_pos - prom_start - 1 if snp_pos != prom_start else 0
+                                    snp_pos = 0+snp_pos
+                                    ref_pos = st.session_state['cis_seq'][snp_pos]
+                                    st.write(ref_pos)
+                                else:
+                                    snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
+                                    snp_pos = 1520+snp_pos
+                                    ref_pos = st.session_state['cis_seq'][snp_pos]
+                                    st.write(ref_pos)
+                            else:
+                                if snp_region == 'Promoter':
+                                    snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
+                                    snp_pos = 1500-snp_pos-1
+
+                                else:
+                                    snp_pos = snp_pos - prom_start - 1 if snp_pos != prom_start else 0
+                                    snp_pos = 3020-snp_pos-1
+
+                            if st.button('Mutate Sequence', type='primary'):
+                                if strand == '+':
+                                    mut_cis_seq = st.session_state['cis_seq'][:snp_pos]+alt_allele+st.session_state['cis_seq'][snp_pos+1:]
+
+                                else:
+                                    mut_cis_seq = st.session_state['cis_seq'][:snp_pos] + complements[alt_allele] + st.session_state['cis_seq'][snp_pos + 1:]
+
+                                seqs = np.array([one_hot_encode(i) for i in [st.session_state['cis_seq'], mut_cis_seq]])
+                                preds = make_predictions(model=f'models/{deepcre_model}.h5', x=seqs)
+                                actual_scores, pred_probs, gene_names = extract_scores(seqs=seqs, pred_probs=preds,
+                                                                                       genes=[gene_id, f'{gene_id}: Mutated'],
+                                                                                       model=f'models/{deepcre_model}.h5',
+                                                                                       separate=False)
+                                pred_chart = alt.Chart(pd.DataFrame({'Probability of high expression': pred_probs,
+                                                                     'Gene ID': [gene_id,
+                                                                                 f'{gene_id}: Mutated']})).mark_bar() \
+                                    .encode(x='Gene ID:N', y='Probability of high expression',
+                                            color=alt.Color('Gene ID:N', scale=alt.Scale(range=['grey', '#33BBC5'],
+                                                                                         domain=[gene_id,
+                                                                                                 f'{gene_id}: Mutated'])))
+                                mut_probs_col, mut_sal_map_col = st.columns([0.2, 0.9])
+                                with mut_probs_col:
+                                    st.altair_chart(pred_chart, use_container_width=True, theme=None)
+                                with mut_sal_map_col:
+                                    mut_df = pd.DataFrame({
+                                        'Saliency Score': np.concatenate(
+                                            [actual_scores[0].mean(axis=1), actual_scores[1].mean(axis=1)]),
+                                        'Gene ID': list(
+                                            itertools.chain(*[[gene_id] * 3020, [f'{gene_id}: Mutated'] * 3020])),
+                                        'Nucleotide Position': np.concatenate([np.arange(1, 3021) for _ in range(2)],
+                                                                              axis=0)
+                                    })
+
+                                    chart_title = alt.TitleParams(
+                                        f"Average Saliency Map for mutated sequence compared to the original sequence",
+                                        subtitle=[
+                                            """Saliency scores are averaged across all sequences predicted per nucleotide""",
+                                            f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
+                                        subtitleColor='grey'
+                                    )
+
+                                    base = alt.Chart(mut_df, title=chart_title)
+                                    saliency_chart_high = base.mark_line(line=False, point=False).encode(
+                                        x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
+                                                axis=alt.Axis(tickCount=10)),
+                                        y=alt.Y('Saliency Score:Q', scale=alt.Scale(
+                                            domain=[mut_df['Saliency Score'].min(), mut_df['Saliency Score'].max()])),
+                                        color=alt.Color('Gene ID:N',
+                                                        scale=alt.Scale(range=['grey', '#33BBC5'],
+                                                                        domain=[gene_id, f'{gene_id}: Mutated'])),
+                                        opacity=alt.condition(alt.datum['Gene ID'] == gene_id, alt.value(1), alt.value(0.7))
+                                    )
+                                    max_saliency = mut_df['Saliency Score'].max()
+                                    mean_pos_saliency = mut_df['Saliency Score'].mean()
+                                    text_y = max_saliency + mean_pos_saliency
+
+                                    annotations = [
+                                        (1000, text_y, "TSS", "Transcription Start Site"),
+                                        (2020, text_y, "TTS", "Transcription Termination site"),
+                                        #(snp_pos, text_y, f'{ref_allele} - {alt_allele}', 'single nucleotide polymorphism')
+                                    ]
+                                    annotations_df = pd.DataFrame(
+                                        annotations,
+                                        columns=["Nucleotide Position", "Saliency Score", "marker", "description"]
+                                    )
+                                    annotation_layer = (
+                                        alt.Chart(annotations_df)
+                                        .mark_text(size=12, dx=0, dy=0, align="center")
+                                        .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
+                                                y=alt.Y("Saliency Score:Q"), text="marker",
+                                                tooltip="description")
+                                    )
+
+                                    rule = base.mark_rule(strokeDash=[2, 2]).encode(
+                                        y=alt.datum(0),
+                                        color=alt.value("black")
+                                    )
+
+                                    # SNP marking
+                                    snp_annotation_df = pd.DataFrame([(snp_pos, text_y, f'{ref_allele} - {alt_allele}', 'single nucleotide polymorphism')],
+                                                                     columns=["Nucleotide Position", "Saliency Score", "marker", "description"])
+
+                                    snp_annotation_layer = (
+                                        alt.Chart(snp_annotation_df)
+                                        .mark_text(size=15, dx=0, dy=0, align="center", color='red')
+                                        .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
+                                                y=alt.Y("Saliency Score:Q"), text="marker",
+                                                tooltip="description"))
+
+                                    snp_rule = base.mark_rule(strokeDash=[2, 2]).encode(
+                                        x=alt.datum(snp_pos),
+                                        color=alt.value("silver")
+                                    )
+                                    saliency_chart_high = saliency_chart_high + annotation_layer + rule + snp_rule + snp_annotation_layer
+                                    st.altair_chart(saliency_chart_high, use_container_width=True, theme=None)
+
                     else:
                         st.write(':red[Warning: Please upload a .gz file]')
 
