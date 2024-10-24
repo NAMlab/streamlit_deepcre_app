@@ -59,7 +59,10 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new
         with _open(genome) as f:
             genome = SeqIO.to_dict(SeqIO.parse(f, format='fasta'))
 
-    genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()[-1000:]
+    genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()
+    if len(genes) > 2:
+        st.warning("You uploaded more than 1000 genes. Only the first 1000 genes will be considered for the analysis.")
+        genes = genes[-2:]
     if new:
         if annot.name.endswith(('gtf', 'gtf.gz')):
             gene_models = read_gtf(annot, new=new)
@@ -80,7 +83,13 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new
             gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'ID']]
 
     gene_models.columns = ['Chromosome', 'Start', 'End', 'Strand', 'gene_id']
-    gene_models = gene_models[gene_models['gene_id'].isin(genes)]
+    gene_models_overlap = gene_models[gene_models['gene_id'].isin(genes)]
+    if gene_models_overlap.empty:
+        st.error("None of the genes in your list were found in the genome annotation. " + 
+                 "Please check you're using the correct formatting for gene IDs. " +
+                 "Here are 8 random genes from the genome: " + 
+                 ', '.join(np.random.choice(gene_models['gene_id'].values, 8)))
+        return None, None, None, None, None, None, None, None
 
     expected_final_size = 2 * (upstream + downstream) + 20
 
