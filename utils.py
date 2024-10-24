@@ -12,6 +12,7 @@ from tensorflow.keras.models import load_model
 import gzip
 from mimetypes import guess_type
 from functools import partial
+import re
 
 def one_hot_encode(sequence: str,
                    alphabet: str = 'ACGT',
@@ -338,6 +339,7 @@ def read_gff3(file_name, new=False):
     df = pd.concat(dfs, sort=False)
 
     df.loc[:, "Start"] = df.Start - 1
+    df['ID'] = df['ID'].apply(lambda x: re.sub(r'^gene:', '', x))
 
     return df
 
