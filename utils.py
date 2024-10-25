@@ -60,9 +60,9 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new
             genome = SeqIO.to_dict(SeqIO.parse(f, format='fasta'))
 
     genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()
-    if len(genes) > 2:
+    if len(genes) > 1000:
         st.warning("You uploaded more than 1000 genes. Only the first 1000 genes will be considered for the analysis.")
-        genes = genes[-2:]
+        genes = genes[-1000:]
     if new:
         if annot.name.endswith(('gtf', 'gtf.gz')):
             gene_models = read_gtf(annot, new=new)

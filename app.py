@@ -17,7 +17,7 @@ tf.config.set_visible_devices([], 'GPU')
 def main():
     st.set_page_config(layout="wide", page_title='deepCRE')
     color_palette_low_high = ['#4F1787', '#EB3678']
-    species = sorted([x.split(".")[0] for x in os.listdir('species')])
+    species = [] #sorted([x.split(".")[0] for x in os.listdir('species')])
     species.append("New")
     model_names = sorted([x.split('.')[0] for x in os.listdir('models')])
 
