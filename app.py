@@ -38,10 +38,10 @@ def main():
     preds_tab, interpret_tab, mutations_tab = st.tabs(['Predictions', 'Saliency Maps', 'Mutation Analysis'])
 
     if organism == "New":
-        genome = st.sidebar.file_uploader(label="genome",
+        genome = st.sidebar.file_uploader(label="genome", accept_multiple_files=False,
                                           help="""upload a genome in FASTA format. File should be in .gz format, for example
                                           Zea_mays.Zm-B73-REFERENCE-NAM-5.0.dna.toplevel.fa.gz""")
-        annot = st.sidebar.file_uploader(label="gtf/gff3",
+        annot = st.sidebar.file_uploader(label="gtf/gff3", accept_multiple_files=False,
                                          help="""upload a gtf/gff3 file. File should be in .gz format, for example
                                          Zea_mays.Zm-B73-REFERENCE-NAM-5.0.60.gtf.gz""")
         new = True

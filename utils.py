@@ -12,6 +12,7 @@ from tensorflow.keras.models import load_model
 import gzip
 from mimetypes import guess_type
 from functools import partial
+from lib.readers.annotation import read_gene_models
 import re
 
 def one_hot_encode(sequence: str,
@@ -63,26 +64,7 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new
     if len(genes) > 1000:
         st.warning("You uploaded more than 1000 genes. Only the first 1000 genes will be considered for the analysis.")
         genes = genes[-1000:]
-    if new:
-        if annot.name.endswith(('gtf', 'gtf.gz')):
-            gene_models = read_gtf(annot, new=new)
-            gene_models = gene_models[gene_models['Feature'] == 'gene']
-            gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'gene_id']]
-        else:
-            gene_models = read_gff3(annot, new=new)
-            gene_models = gene_models[gene_models['Feature'] == 'gene']
-            gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'ID']]
-    else:
-        if annot.endswith(('gtf', 'gtf.gz')):
-            gene_models = read_gtf(annot, new=new)
-            gene_models = gene_models[gene_models['Feature'] == 'gene']
-            gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'gene_id']]
-        else:
-            gene_models = read_gff3(annot, new=new)
-            gene_models = gene_models[gene_models['Feature'] == 'gene']
-            gene_models = gene_models[['Chromosome', 'Start', 'End', 'Strand', 'ID']]
-
-    gene_models.columns = ['Chromosome', 'Start', 'End', 'Strand', 'gene_id']
+    gene_models = read_gene_models(annot)
     gene_models_overlap = gene_models[gene_models['gene_id'].isin(genes)]
     if gene_models_overlap.empty:
         st.error("None of the genes in your list were found in the genome annotation. " + 
@@ -198,159 +180,6 @@ def make_predictions(model, x):
     model = load_model(model)
     preds = model.predict(x).ravel()
     return preds
-
-
-# ------------- Thanks to pyranges package: https://github.com/pyranges/pyranges/blob/master/pyranges/readers.py#L419
-# The gtf and gff3 readers code was copied from the pyranges package. Slightly modified
-_ordered_gtf_columns = [
-    "seqname",
-    "source",
-    "feature",
-    "start",
-    "end",
-    "score",
-    "strand",
-    "frame",
-    "attribute",
-]
-_ordered_gff3_columns = [
-    "seqname",
-    "source",
-    "feature",
-    "start",
-    "end",
-    "score",
-    "strand",
-    "phase",
-    "attribute",
-]
-
-def rename_core_attrs(df, ftype, rename_attr=False):
-    if ftype == "gtf":
-        core_cols = _ordered_gtf_columns
-    elif ftype == "gff3":
-        core_cols = _ordered_gff3_columns
-
-    dupe_core_cols = list(set(df.columns) & set(core_cols))
-
-    # if duplicate columns were found
-    if len(dupe_core_cols) > 0:
-        print(f"Found attributes with reserved names: {dupe_core_cols}.")
-        if not rename_attr:
-            raise ValueError
-        else:
-            print("Renaming attributes with suffix '_attr'")
-            dupe_core_dict = dict()
-            for c in dupe_core_cols:
-                dupe_core_dict[c] = f"{c}_attr"
-            df.rename(dupe_core_dict, axis=1, inplace=True)
-
-    return df
-
-
-def parse_kv_fields(line):
-    return [kv.replace('""', '"NA"').replace('"', "").split(None, 1) for kv in line.rstrip("; ").split("; ")]
-
-
-def to_rows(anno, ignore_bad: bool = False):
-    rowdicts = []
-    try:
-        line = anno.head(1)
-        for line in line:
-            line.replace('"', "").replace(";", "").split()
-    except AttributeError:
-        raise Exception(
-            "Invalid attribute string: {line}. If the file is in GFF3 format, use pr.read_gff3 instead.".format(
-                line=line
-            )
-        )
-
-    try:
-        for line in anno:
-            rowdicts.append({k: v for k, v in parse_kv_fields(line)})
-    except ValueError:
-        if not ignore_bad:
-            print(f"The following line is not parseable as gtf:\n{line}\n\nTo ignore bad lines use ignore_bad=True.")
-            raise
-
-    return pd.DataFrame.from_records(rowdicts)
-
-
-def to_rows_gff3(anno):
-    rowdicts = []
-
-    for line in list(anno):
-        # stripping last white char if present
-        lx = (it.split("=") for it in line.rstrip("; ").split(";"))
-        rowdicts.append({k: v for k, v in lx})
-
-    return pd.DataFrame.from_records(rowdicts).set_index(anno.index)
-
-
-def read_gtf(file_name, new=False):
-    names = "Chromosome Source Feature Start End Score Strand Frame Attribute".split()
-    if new:
-        if file_name.name.endswith('.gz'):
-            gtf_file = BytesIO(file_name.read())
-            df_iter = pd.read_csv(gtf_file, header=None, comment='#', sep='\t', compression='gzip',
-                                  dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                                  names=names, chunksize=int(1e5))
-        else:
-            df_iter = pd.read_csv(StringIO(file_name.getvalue().decode("utf-8")), header=None, comment='#', sep='\t',
-                                  dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                                  names=names, chunksize=int(1e5))
-
-    else:
-        df_iter = pd.read_csv(file_name, header=None, comment='#', sep='\t',
-                              dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                              names=names, chunksize=int(1e5))
-
-    dfs = []
-    for df in df_iter:
-        extra = to_rows(df.Attribute, ignore_bad=False)
-        df = df.drop("Attribute", axis=1)
-        extra.set_index(df.index, inplace=True)
-        ndf = pd.concat([df, extra], axis=1, sort=False)
-        dfs.append(ndf)
-
-    df = pd.concat(dfs, sort=False)
-    df.loc[:, "Start"] = df.Start - 1
-
-    df = rename_core_attrs(df, ftype="gtf", rename_attr=False)
-    return df
-
-
-def read_gff3(file_name, new=False):
-    names = "Chromosome Source Feature Start End Score Strand Frame Attribute".split()
-    if new:
-        if file_name.name.endswith('.gz'):
-            gtf_file = BytesIO(file_name.read())
-            df_iter = pd.read_csv(gtf_file, header=None, comment='#', sep='\t', compression='gzip',
-                                  dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                                  names=names, chunksize=int(1e5))
-        else:
-            df_iter = pd.read_csv(StringIO(file_name.getvalue().decode("utf-8")), header=None, comment='#', sep='\t',
-                                  dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                                  names=names, chunksize=int(1e5))
-
-    else:
-        df_iter = pd.read_csv(file_name, header=None, comment='#', sep='\t',
-                              dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
-                              names=names, chunksize=int(1e5))
-    dfs = []
-    for df in df_iter:
-        extra = to_rows_gff3(df.Attribute.astype(str))
-        df = df.drop("Attribute", axis=1)
-        extra.set_index(df.index, inplace=True)
-        ndf = pd.concat([df, extra], axis=1, sort=False)
-        dfs.append(ndf)
-
-    df = pd.concat(dfs, sort=False)
-
-    df.loc[:, "Start"] = df.Start - 1
-    df['ID'] = df['ID'].apply(lambda x: re.sub(r'^gene:', '', x))
-
-    return df
 
 @st.cache_data
 def prepare_vcf(uploaded_file):
