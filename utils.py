@@ -1,5 +1,3 @@
-from email.policy import default
-
 import numpy as np
 import pandas as pd
 from typing import Any
@@ -60,9 +58,9 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new
             genome = SeqIO.to_dict(SeqIO.parse(f, format='fasta'))
 
     genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()
-    if len(genes) > 2:
-        st.warning("You uploaded more than 1000 genes. Only the first 1000 genes will be considered for the analysis.")
-        genes = genes[-2:]
+    if len(genes) > 1000:
+        st.warning(":red[You uploaded more than 1000 genes. Only the first 1000 genes will be considered for the analysis.]")
+        genes = genes[:1000]
     if new:
         if annot.name.endswith(('gtf', 'gtf.gz')):
             gene_models = read_gtf(annot, new=new)
@@ -94,7 +92,7 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new
     expected_final_size = 2 * (upstream + downstream) + 20
 
     x, gene_ids, gene_sizes, gene_chroms, gene_starts, gene_ends, gene_gc_content, gene_strand = [], [], [], [], [], [], [], []
-    for chrom, start, end, strand, gene_id in gene_models.values:
+    for chrom, start, end, strand, gene_id in gene_models_overlap.values:
         gene_size = end - start
         extractable_downstream = downstream if gene_size // 2 > downstream else gene_size // 2
         prom_start, prom_end = start - upstream, start + extractable_downstream
@@ -375,3 +373,12 @@ def dataframe_with_selections(df):#
                          use_container_width=True)
     selection_info = event['selection']
     return df.loc[selection_info['rows']]
+
+
+def check_file(file, file_type):
+    if file.size > 0:
+        return_file = file
+    else:
+        return_file = None
+        st.error(f":red[The uploaded {file_type} file is empty. Please verify !]")
+    return return_file

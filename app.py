@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import streamlit as st
 from utils import prepare_dataset, extract_scores, make_predictions, one_hot_to_dna, one_hot_encode, prepare_vcf
-from utils import dataframe_with_selections
+from utils import dataframe_with_selections, check_file
 import pandas as pd
 import itertools
 import altair as alt
@@ -41,9 +41,13 @@ def main():
         genome = st.sidebar.file_uploader(label="genome",
                                           help="""upload a genome in FASTA format. File should be in .gz format, for example
                                           Zea_mays.Zm-B73-REFERENCE-NAM-5.0.dna.toplevel.fa.gz""")
+        if genome is not None:
+            genome = check_file(file=genome, file_type="genome")
         annot = st.sidebar.file_uploader(label="gtf/gff3",
                                          help="""upload a gtf/gff3 file. File should be in .gz format, for example
                                          Zea_mays.Zm-B73-REFERENCE-NAM-5.0.60.gtf.gz""")
+        if annot is not None:
+            annot = check_file(file=annot, file_type="GTF/GFF3")
         new = True
     else:
         genome = [x for x in os.listdir('species') if x.startswith(organism)][0]
@@ -55,6 +59,8 @@ def main():
                                           help="""upload a csv file of max 1000 gene IDs.
                                            Each gene ID must be on a new line. If genes are more than 1000, the
                                            first 1000 genes will be analysed.""")
+    if genes_list is not None:
+        genes_list = check_file(file=genes_list, file_type="genes list")
     deepcre_model = st.sidebar.selectbox(label="Choose deepCRE model", options=model_names, )
     if genome is not None and annot is not None and genes_list is not None:
         x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
