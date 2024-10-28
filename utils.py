@@ -3,17 +3,14 @@ from email.policy import default
 import numpy as np
 import pandas as pd
 from typing import Any
-from Bio import SeqIO
-from io import StringIO, BytesIO
+from io import StringIO
 from deeplift.dinuc_shuffle import dinuc_shuffle
 import shap
 import streamlit as st
 from tensorflow.keras.models import load_model
 import gzip
-from mimetypes import guess_type
-from functools import partial
 from lib.readers.annotation import read_gene_models
-import re
+from lib.readers.genome import read_genome
 
 def one_hot_encode(sequence: str,
                    alphabet: str = 'ACGT',
@@ -46,25 +43,14 @@ def compute_gc(enc_seq):
     return len(c_count)/enc_seq.shape[0]
 
 @st.cache_data
-def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, new=False):
-    if new:
-        if genome.name.endswith('.gz'):
-            genome = BytesIO(genome.read())
-            with gzip.open(filename=genome, mode='rt') as f:
-                genome = SeqIO.to_dict(SeqIO.parse(f, format='fasta'))
-        else:
-            genome = SeqIO.to_dict(SeqIO.parse(StringIO(genome.getvalue().decode("utf-8")), format='fasta'))
-    else:
-        encoding = guess_type(genome)[1]  # uses file extension
-        _open = partial(gzip.open, mode='rt') if encoding == 'gzip' else open
-        with _open(genome) as f:
-            genome = SeqIO.to_dict(SeqIO.parse(f, format='fasta'))
+def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500):
+    genome = read_genome(genome) 
+    gene_models = read_gene_models(annot)
 
     genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()
     if len(genes) > 1000:
         st.warning("You uploaded more than 1000 genes. Only the first 1000 genes will be considered for the analysis.")
         genes = genes[-1000:]
-    gene_models = read_gene_models(annot)
     gene_models_overlap = gene_models[gene_models['gene_id'].isin(genes)]
     if gene_models_overlap.empty:
         st.error("None of the genes in your list were found in the genome annotation. " + 

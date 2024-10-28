@@ -17,7 +17,9 @@ tf.config.set_visible_devices([], 'GPU')
 def main():
     st.set_page_config(layout="wide", page_title='deepCRE')
     color_palette_low_high = ['#4F1787', '#EB3678']
-    species = [] #sorted([x.split(".")[0] for x in os.listdir('species')])
+
+    available_genomes = pd.read_csv("genomes/genomes.csv")
+    species = available_genomes["display_name"].tolist()
     species.append("New")
     model_names = sorted([x.split('.')[0] for x in os.listdir('models')])
 
@@ -46,10 +48,8 @@ def main():
                                          Zea_mays.Zm-B73-REFERENCE-NAM-5.0.60.gtf.gz""")
         new = True
     else:
-        genome = [x for x in os.listdir('species') if x.startswith(organism)][0]
-        genome = f"species/{genome}"
-        annot = [x for x in os.listdir('annotations') if x.startswith(organism)][0]
-        annot = f"annotations/{annot}"
+        genome = available_genomes.loc[available_genomes["display_name"] == organism, "assembly_file"].values[0]
+        annot = available_genomes.loc[available_genomes["display_name"] == organism, "annotation_file"].values[0]
         new = False
     genes_list = st.sidebar.file_uploader(label="genes",
                                           help="""upload a csv file of max 1000 gene IDs.
@@ -60,7 +60,7 @@ def main():
         x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
                                                                                                                   annot=annot,
                                                                                                                   gene_list=genes_list,
-                                                                                                                  new=new)
+                                                                                                                  )
         if x is not None and x.size > 0:
             preds = make_predictions(model=f'models/{deepcre_model}.h5', x=x)
             with preds_tab:

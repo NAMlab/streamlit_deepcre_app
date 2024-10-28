@@ -18,9 +18,8 @@ def read_gene_models(annotation_file):
     else:
         format = 'gtf' if annotation_file.endswith(('gtf', 'gtf.gz')) else 'gff3'
         compression = 'gzip' if annotation_file.endswith('.gz') else None
-        pd_input = "genomes/annotation" + annotation_file
+        pd_input = "genomes/annotation/" + annotation_file
 
-    print(format, compression)
     names = ["Chromosome", "Source", "Feature", "Start", "End", "Score", "Strand", "Frame", "Attribute"]
     df_iter = pd.read_csv(pd_input, header=None, comment='#', sep='\t', compression=compression,
                             dtype={"Chromosome": "category", "Feature": "category", "Strand": "category"},
