@@ -40,7 +40,7 @@ def compute_gc(enc_seq):
     c_count = np.where(enc_seq[:, [1, 2]] == 1)[0]
     return len(c_count)/enc_seq.shape[0]
 
-def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500):
+def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, use_example=False):
     genome = read_genome(genome) 
     gene_models = read_gene_models(annot)
 
@@ -56,10 +56,11 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500):
                     "Here are 8 random genes from the genome: " + 
                     ', '.join(np.random.choice(gene_models['gene_id'].values, 8)))
             return None, None, None, None, None, None, None, None
-    else:
+    elif use_example:
         # If no genes are provided, we just show results for 100 random ones
         gene_models_overlap = gene_models.sample(n=100)
-
+    else:
+        return None, None, None, None, None, None, None, None
     expected_final_size = 2 * (upstream + downstream) + 20
 
     x, gene_ids, gene_sizes, gene_chroms, gene_starts, gene_ends, gene_gc_content, gene_strand = [], [], [], [], [], [], [], []
@@ -198,5 +199,5 @@ def check_file(file, file_type):
         return_file = file
     else:
         return_file = None
-        st.error(f":red[The uploaded {file_type} file is empty. Please verify !]")
+        st.error(f":red[The uploaded {file_type} file is empty. Please verify !]", icon="⚠️")
     return return_file

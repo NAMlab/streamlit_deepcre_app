@@ -124,11 +124,24 @@ def main():
     deepcre_model = st.sidebar.selectbox(label="Choose deepCRE model", options=model_names, )
     if genome is not None and annot is not None:
         if genes_list is None:
-            st.warning("No gene list uploaded. Displaying results for 100 random genes from the genome.")
+            with preds_tab:
+                if st.button('Use example', type='primary'):
+                    use_example = True
+                    st.warning(f":red[No gene list uploaded. Displaying results for 100 random genes from the {organism}.]",
+                               icon="⚠️")
+                else:
+                    st.info("""Currently you have not uploaded any data for processing. To see how our tool works please 
+                                click on the "use example" button. This will run our tool on 100 sampled genes from the selected 
+                                genome. To use your own genes of interest, please uploaded a list of genes at the
+                                upload section.
+                                """, icon="ℹ️")
+                    use_example = False
+
+
         x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
                                                                                                                   annot=annot,
                                                                                                                   gene_list=genes_list,
-                                                                                                                  )
+                                                                                                                  use_example=use_example)
         if x is not None and x.size > 0:
             preds = make_predictions(model=f'models/{deepcre_model}.h5', x=x)
             with preds_tab:
