@@ -62,7 +62,9 @@ def main():
     if genes_list is not None:
         genes_list = check_file(file=genes_list, file_type="genes list")
     deepcre_model = st.sidebar.selectbox(label="Choose deepCRE model", options=model_names, )
-    if genome is not None and annot is not None and genes_list is not None:
+    if genome is not None and annot is not None:
+        if genes_list is None:
+            st.warning("No gene list uploaded. Displaying results for 100 random genes from the genome.")
         x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
                                                                                                                   annot=annot,
                                                                                                                   gene_list=genes_list,

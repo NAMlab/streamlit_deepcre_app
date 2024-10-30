@@ -3,6 +3,7 @@ from io import StringIO, BytesIO
 import streamlit as st
 import gzip
 
+@st.cache_data(ttl=7200,max_entries=10)
 def read_genome(genome_file):
     if isinstance(genome_file, st.runtime.uploaded_file_manager.UploadedFile):
         if genome_file.name.endswith('.gz'):
