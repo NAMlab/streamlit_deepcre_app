@@ -136,7 +136,8 @@ def main():
                                 upload section.
                                 """, icon="ℹ️")
                     use_example = False
-
+        else:
+            use_example = False
 
         x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
                                                                                                                   annot=annot,
