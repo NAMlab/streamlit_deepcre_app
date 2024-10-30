@@ -25,7 +25,7 @@ def one_hot_encode(sequence: str,
     return hash_table[to_uint8(sequence)]
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def one_hot_to_dna(one_hot):
     one_hot = np.expand_dims(one_hot, axis=0) if len(one_hot.shape) == 2 else one_hot
     bases = np.array(["A", "C", "G", "T", "N"])
@@ -40,22 +40,25 @@ def compute_gc(enc_seq):
     c_count = np.where(enc_seq[:, [1, 2]] == 1)[0]
     return len(c_count)/enc_seq.shape[0]
 
-@st.cache_data
 def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500):
     genome = read_genome(genome) 
     gene_models = read_gene_models(annot)
 
-    genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()
-    if len(genes) > 1000:
-        st.warning(":red[You uploaded more than 1000 genes. Only the first 1000 genes will be considered for the analysis.]")
-        genes = genes[:1000]
-    gene_models_overlap = gene_models[gene_models['gene_id'].isin(genes)]
-    if gene_models_overlap.empty:
-        st.error("None of the genes in your list were found in the genome annotation. " + 
-                 "Please check you're using the correct formatting for gene IDs. " +
-                 "Here are 8 random genes from the genome: " + 
-                 ', '.join(np.random.choice(gene_models['gene_id'].values, 8)))
-        return None, None, None, None, None, None, None, None
+    if gene_list is not None:
+        genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()
+        if len(genes) > 1000:
+            st.warning(":red[You uploaded more than 1000 genes. Only the first 1000 genes will be considered for the analysis.]")
+            genes = genes[:1000]
+        gene_models_overlap = gene_models[gene_models['gene_id'].isin(genes)]
+        if gene_models_overlap.empty:
+            st.error("None of the genes in your list were found in the genome annotation. " + 
+                    "Please check you're using the correct formatting for gene IDs. " +
+                    "Here are 8 random genes from the genome: " + 
+                    ', '.join(np.random.choice(gene_models['gene_id'].values, 8)))
+            return None, None, None, None, None, None, None, None
+    else:
+        # If no genes are provided, we just show results for 100 random ones
+        gene_models_overlap = gene_models.sample(n=100)
 
     expected_final_size = 2 * (upstream + downstream) + 20
 
@@ -123,7 +126,7 @@ def combine_mult_and_diffref(mult, orig_inp, bg_data):
         to_return.append(np.mean(projected_hypothetical_contribs, axis=0))
     return to_return
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def compute_actual_hypothetical_scores(x, model):
     model = load_model(model)
     shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough
@@ -137,7 +140,7 @@ def compute_actual_hypothetical_scores(x, model):
     return actual_scores
 
 
-@st.cache_resource
+@st.cache_resource(ttl=3600)
 def extract_scores(seqs, pred_probs, genes, model, separate=True):
     if separate:
         x_low, x_high, g_low, g_high, probs_low, probs_high = [], [], [], [], [], []
@@ -159,13 +162,13 @@ def extract_scores(seqs, pred_probs, genes, model, separate=True):
         actual_scores = compute_actual_hypothetical_scores(x=seqs, model=model)
         return actual_scores, pred_probs, genes
 
-@st.cache_resource
+@st.cache_resource(ttl=3600)
 def make_predictions(model, x):
     model = load_model(model)
     preds = model.predict(x).ravel()
     return preds
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def prepare_vcf(uploaded_file):
     lines = []
     with gzip.open(filename=uploaded_file, mode='rt') as fin:

@@ -6,6 +6,7 @@ import re
 from io import StringIO, BytesIO
 import pandas as pd
 
+@st.cache_data(ttl=7200,max_entries=10)
 def read_gene_models(annotation_file):
     if isinstance(annotation_file, st.runtime.uploaded_file_manager.UploadedFile):
         format = 'gtf' if annotation_file.name.endswith(('gtf', 'gtf.gz')) else 'gff3'
