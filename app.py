@@ -256,6 +256,14 @@ def main():
                 actual_scores_low, actual_scores_high, g_h, g_l, p_l, p_h = extract_scores(seqs=x, pred_probs=preds,
                                                                                         genes=gene_ids,
                                                                                         model=f'models/{deepcre_model}.h5')
+                if actual_scores_low.shape[0] == 0:
+                    actual_scores_low = np.zeros_like(actual_scores_high)
+                    g_l = [np.nan]
+                    p_l = [np.nan]
+                if actual_scores_high.shape[0] == 0:
+                    actual_scores_high = np.zeros_like(actual_scores_low)
+                    g_h = [np.nan]
+                    p_h = [np.nan]
 
                 sal_line, sal_scat = st.columns([0.6, 0.4], vertical_alignment='top', gap='medium')
                 with sal_line:
@@ -303,14 +311,16 @@ def main():
 
                 with sal_scat:
                     sum_saliency_score, pred_prob, expressed = [], [], []
-                    for idx in range(actual_scores_high.shape[0]):
-                        sum_saliency_score.append(actual_scores_high[idx].sum())
-                        pred_prob.append(p_h[idx])
-                        expressed.append('High')
-                    for idx in range(actual_scores_low.shape[0]):
-                        sum_saliency_score.append(actual_scores_low[idx].sum())
-                        pred_prob.append(p_l[idx])
-                        expressed.append('Low')
+                    if  not np.isnan(p_h[0]):
+                        for idx in range(actual_scores_high.shape[0]):
+                            sum_saliency_score.append(actual_scores_high[idx].sum())
+                            pred_prob.append(p_h[idx])
+                            expressed.append('High')
+                    if not np.isnan(p_l[0]):
+                        for idx in range(actual_scores_low.shape[0]):
+                            sum_saliency_score.append(actual_scores_low[idx].sum())
+                            pred_prob.append(p_l[idx])
+                            expressed.append('Low')
                     data_sal_scat = pd.DataFrame(data={'Expressed':expressed,
                                                     'Sum Saliency Score':sum_saliency_score,
                                                     'Probability of high expression':pred_prob})
@@ -390,28 +400,29 @@ def main():
                 with sal_scat_nucl:
                     for scores_arr, probs in zip([actual_scores_high, actual_scores_low], [p_h, p_l]):
                         n_genes = len(probs)
-                        df = pd.DataFrame(data={
-                            'Base':list(itertools.chain(*[['A'] * n_genes , ['C'] * n_genes,
-                                                        ['G'] * n_genes, ['T'] * n_genes])),
-                            'Probability of high expression': list(itertools.chain(*[probs for _ in range(4)])),
-                            'Sum Saliency Score': np.concatenate([scores_arr.sum(axis=1)[:, i] for i in range(4)]),
-                        })
+                        if n_genes == scores_arr.shape[0]:
+                            df = pd.DataFrame(data={
+                                'Base':list(itertools.chain(*[['A'] * n_genes , ['C'] * n_genes,
+                                                            ['G'] * n_genes, ['T'] * n_genes])),
+                                'Probability of high expression': list(itertools.chain(*[probs for _ in range(4)])),
+                                'Sum Saliency Score': np.concatenate([scores_arr.sum(axis=1)[:, i] for i in range(4)]),
+                            })
 
-                        chart_title = alt.TitleParams(
-                            "Saliency score vs Predicted probabilities",
-                            subtitle=[
-                                """Base-type""",
-                                f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
-                            subtitleColor='grey'
-                        )
-                        saliency_scat = alt.Chart(df, title=chart_title).mark_circle(size=25).encode(
-                            x=alt.X('Probability of high expression:Q', scale=alt.Scale(domain=[0, 1])),
-                            y=alt.Y('Sum Saliency Score:Q'),
-                            color=alt.Color('Base:N',
-                                            scale=alt.Scale(range=['green', 'cornflowerblue', 'darkorange',  'red'],
-                                                            domain=['A', 'C', 'G', 'T']))
-                        )
-                        st.altair_chart(saliency_scat, use_container_width=True, theme=None)
+                            chart_title = alt.TitleParams(
+                                "Saliency score vs Predicted probabilities",
+                                subtitle=[
+                                    """Base-type""",
+                                    f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
+                                subtitleColor='grey'
+                            )
+                            saliency_scat = alt.Chart(df, title=chart_title).mark_circle(size=25).encode(
+                                x=alt.X('Probability of high expression:Q', scale=alt.Scale(domain=[0, 1])),
+                                y=alt.Y('Sum Saliency Score:Q'),
+                                color=alt.Color('Base:N',
+                                                scale=alt.Scale(range=['green', 'cornflowerblue', 'darkorange',  'red'],
+                                                                domain=['A', 'C', 'G', 'T']))
+                            )
+                            st.altair_chart(saliency_scat, use_container_width=True, theme=None)
 
 
             with mutations_tab:
