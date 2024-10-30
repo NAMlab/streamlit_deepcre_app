@@ -51,7 +51,7 @@ def main():
             """)
 
             st.write("\n\n\n")
-            avail_gen, _ = st.columns([0.5, 0.5])
+            avail_gen, _ = st.columns([0.9, 0.1])
             prev_page, _, next_page = st.columns([1, 10, 1])
             n_rows_to_show = 5
             n_genomes = len(available_genomes)
@@ -62,15 +62,15 @@ def main():
 
             with avail_gen:
                 st.subheader('Available genomes', divider='grey')
-                st.write('If you have a novel genome or assembly please use the upload area.')
+                st.write('If you have a novel genome or assembly, please select "New" in the Species field to the left.')
 
-            if next_page.button("Next", type='primary'):
+            if next_page.button("⇒", type='primary'):
                 if st.session_state.page_number + 1 > last_page:
                     st.session_state.page_number = 0
                 else:
                     st.session_state.page_number += 1
 
-            if prev_page.button("Prev", type='primary'):
+            if prev_page.button("⇐", type='primary'):
 
                 if st.session_state.page_number - 1 < 0:
                     st.session_state.page_number = last_page
@@ -135,7 +135,7 @@ def main():
                     st.info("""Currently you have not uploaded any data for processing. To see how our tool works please 
                                 click on the "use example" button. This will run our tool on 100 sampled genes from the selected 
                                 genome. To use your own genes of interest, please uploaded a list of genes at the
-                                upload section.
+                                upload section to the left.
                                 """, icon="ℹ️")
                     use_example = False
         else:
