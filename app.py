@@ -82,7 +82,9 @@ def main():
 
             # Index into the sub dataframe
             sub_df = available_genomes.iloc[curr_idx:end_idx]
-            st.dataframe(sub_df[['display_name', 'description']], hide_index=True, use_container_width=True)
+            sub_df = sub_df[['display_name', 'description']]
+            sub_df.columns = ['Genome', 'Description']
+            st.dataframe(sub_df, hide_index=True, use_container_width=True)
 
         # Logo of lab and link
         _, lab_logo, lab_name = st.columns([0.3, 0.4, 0.3], vertical_alignment='bottom', gap='small')
