@@ -212,7 +212,7 @@ def main():
                         subtitleColor='grey'
                     )
                     chart_hist_pred_prob = alt.Chart(predictions, title=chart_title).mark_bar().encode(
-                        alt.X('Probability of high expression:Q').bin(maxbins=20),
+                        alt.X('Probability of high expression:Q', bin=alt.Bin(extent=[0, 1], step=0.05)),
                         alt.Y('count()').stack(None),
                         color=alt.Color('Expressed:N', scale=alt.Scale(range=color_palette_low_high,
                                                                     domain=['High', 'Low']))
