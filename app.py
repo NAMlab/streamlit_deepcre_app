@@ -607,9 +607,11 @@ def main():
                                 seq = one_hot_to_dna(x[gene_ids.index(gene_id)])[0]
                                 strand = gene_strands[gene_ids.index(gene_id)]
                                 start, end = gene_starts[gene_ids.index(gene_id)], gene_ends[gene_ids.index(gene_id)]
+                                utr_len = 500 if abs(start-end)//2 > 500 else abs(end-start)//2
+                                central_pad_size = 3020 - (1000 + utr_len)*2
                                 chrom = gene_chroms[gene_ids.index(gene_id)]
-                                snps_in_prom = vcf_df[(vcf_df['Pos'] > start - 1000) & (vcf_df['Pos'] < start + 500) & (vcf_df['Chrom'] == chrom)]
-                                snps_in_term = vcf_df[(vcf_df['Pos'] > end - 500) & (vcf_df['Pos'] < end + 1000) & (vcf_df['Chrom'] == chrom)]
+                                snps_in_prom = vcf_df[(vcf_df['Pos'] > start - 1000) & (vcf_df['Pos'] < start + utr_len) & (vcf_df['Chrom'] == chrom)]
+                                snps_in_term = vcf_df[(vcf_df['Pos'] > end - utr_len) & (vcf_df['Pos'] < end + 1000) & (vcf_df['Chrom'] == chrom)]
                                 if strand == '+':
                                     snps_in_prom['Region'] = ['Promoter']*snps_in_prom.shape[0]
                                     snps_in_term['Region'] = ['Terminator']*snps_in_term.shape[0]
@@ -618,7 +620,7 @@ def main():
                                     snps_in_term['Region'] = ['Promoter'] * snps_in_term.shape[0]
                                 snps_cis_regions = pd.concat([snps_in_prom, snps_in_term], axis=0)
                                 snps_cis_regions['Strand'] = [strand]*snps_cis_regions.shape[0]
-                                snps_cis_regions.sort_values(by='Region', ascending=True, inplace=True)
+                                snps_cis_regions.sort_values(by=['Region', 'Pos'], ascending=True, inplace=True)
                                 snps_cis_regions.reset_index(drop=True, inplace=True)
                                 if 'current_gene' not in st.session_state:
                                     st.session_state.current_gene = gene_id
@@ -627,10 +629,8 @@ def main():
                                 st.write('Here is your selected SNP')
                                 st.dataframe(selection, use_container_width=True)
                             if not selection.empty:
-                                prom_start, prom_end = start-1000, start+500
-                                term_start, term_end = end-500, end+1000
-                                #snp_pos, snp_region = selection['Pos'].values[0], selection['Region'].values[0]
-                                #ref_allele, alt_allele = selection['Ref'].values[0], selection['Alt'].values[0]
+                                prom_start, prom_end = start-1000, start+utr_len
+                                term_start, term_end = end-utr_len, end+1000
                                 complements = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C', 'N': 'N'}
 
                                 if st.button('Mutate Sequence', type='primary'):
@@ -650,11 +650,11 @@ def main():
                                                 snp_pos = 0 + snp_pos
                                             else:
                                                 snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
-                                                snp_pos = 1520 + snp_pos
+                                                snp_pos = (1000+utr_len+central_pad_size) + snp_pos
                                         else:
                                             if snp_region == 'Promoter':
                                                 snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
-                                                snp_pos = 1500 - snp_pos - 1
+                                                snp_pos = (1000+utr_len) - snp_pos - 1
 
                                             else:
                                                 snp_pos = snp_pos - prom_start - 1 if snp_pos != prom_start else 0
@@ -666,9 +666,7 @@ def main():
 
                                         else:
                                             mut_cis_seq = mut_cis_seq[:snp_pos] + complements[alt_allele] + mut_cis_seq[snp_pos + 1:]
-                                    for seq_idx in range(len(mut_cis_seq)):
-                                        if st.session_state['cis_seq'][seq_idx] != mut_cis_seq[seq_idx]:
-                                            print(st.session_state['cis_seq'][seq_idx], mut_cis_seq[seq_idx])
+
                                     seqs = np.array([one_hot_encode(i) for i in [st.session_state['cis_seq'], mut_cis_seq]])
                                     preds = make_predictions(model=f'models/{deepcre_model}.h5', x=seqs)
                                     actual_scores, pred_probs, gene_names = extract_scores(seqs=seqs, pred_probs=preds,
@@ -747,14 +745,14 @@ def main():
 
                                         snp_annotation_layer = (
                                             alt.Chart(snp_annotation_df)
-                                            .mark_text(size=12, dx=0, dy=0, align="center", color='red')
+                                            .mark_text(size=15, dx=0, dy=0, align="center", color='red')
                                             .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
                                                     y=alt.Y("Saliency Score:Q"), text="marker",
                                                     tooltip="description"))
 
                                         for nucl_pos in snp_annotation_df['Nucleotide Position'].values.tolist():
                                             snp_rule = base.mark_rule(strokeDash=[2, 2]).encode(
-                                                x=alt.datum(nucl_pos),
+                                                x=alt.datum(nucl_pos, scale=alt.Scale(domain=[1, 3021])),
                                                 color=alt.value("silver")
                                             )
                                             saliency_chart_vcf = saliency_chart_vcf + snp_rule
