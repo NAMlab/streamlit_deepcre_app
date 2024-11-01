@@ -185,14 +185,21 @@ def prepare_vcf(uploaded_file):
     return lines
 
 
-def dataframe_with_selections(df):#
+'''def dataframe_with_selections(df):#
     event = st.dataframe(df,
                          on_select='rerun',
                          selection_mode='single-row',
                          use_container_width=True)
     selection_info = event['selection']
-    return df.loc[selection_info['rows']]
+    return df.loc[selection_info['rows']]'''
 
+def dataframe_with_selections(df):#
+    event = st.dataframe(df,
+                         on_select='rerun',
+                         selection_mode='multi-row',
+                         use_container_width=True)
+    selection_info = event['selection']
+    return df.loc[selection_info['rows']]
 
 def check_file(file, file_type):
     if file.size > 0:

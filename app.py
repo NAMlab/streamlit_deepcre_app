@@ -522,7 +522,8 @@ def main():
 
                     pred_chart = alt.Chart(pd.DataFrame({'Probability of high expression':pred_probs,
                                                         'Gene ID': [gene_id, f'{gene_id}: Mutated']})).mark_bar()\
-                        .encode(x='Gene ID:N', y='Probability of high expression',
+                        .encode(x='Gene ID:N',
+                                y=alt.Y('Probability of high expression:Q', scale=alt.Scale(domain=[0, 1])),
                                 color=alt.Color('Gene ID:N', scale=alt.Scale(range=['grey', '#33BBC5'],
                                                         domain=[gene_id, f'{gene_id}: Mutated'])))
 
@@ -545,7 +546,7 @@ def main():
                         )
 
                         base = alt.Chart(mut_df, title=chart_title)
-                        saliency_chart_high = base.mark_line(line=False, point=False).encode(
+                        saliency_chart_mut = base.mark_line(line=False, point=False).encode(
                             x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
                                     axis=alt.Axis(tickCount=10)),
                             y=alt.Y('Saliency Score:Q', scale=alt.Scale(
@@ -579,8 +580,8 @@ def main():
                             color=alt.value("black")
                         )
 
-                        saliency_chart_high = saliency_chart_high + annotation_layer + rule
-                        st.altair_chart(saliency_chart_high, use_container_width=True, theme=None)
+                        saliency_chart_mut = saliency_chart_mut + annotation_layer + rule
+                        st.altair_chart(saliency_chart_mut, use_container_width=True, theme=None)
 
                     def reset_seq():
                         st.session_state["prom_sub_seq"] = seq[prom_slider[0]:prom_slider[1]]
@@ -628,40 +629,46 @@ def main():
                             if not selection.empty:
                                 prom_start, prom_end = start-1000, start+500
                                 term_start, term_end = end-500, end+1000
-                                snp_pos, snp_region = selection['Pos'].values[0], selection['Region'].values[0]
-                                ref_allele, alt_allele = selection['Ref'].values[0], selection['Alt'].values[0]
-                                complements = {'A':'T', 'T':'A', 'C':'G', 'G':'C', 'N':'N'}
-
-                                # Initialize session cis-regulatory sequence ---------------------------
-
-                                if "cis_seq" not in st.session_state:
-                                    st.session_state['cis_seq'] = seq
-                                if st.session_state.current_gene != gene_id:
-                                    st.session_state.current_gene = gene_id
-                                    st.session_state['cis_seq'] = seq
-                                if strand == '+':
-                                    if snp_region == 'Promoter':
-                                        snp_pos = snp_pos - prom_start - 1 if snp_pos != prom_start else 0
-                                        snp_pos = 0+snp_pos
-                                    else:
-                                        snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
-                                        snp_pos = 1520+snp_pos
-                                else:
-                                    if snp_region == 'Promoter':
-                                        snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
-                                        snp_pos = 1500-snp_pos-1
-
-                                    else:
-                                        snp_pos = snp_pos - prom_start - 1 if snp_pos != prom_start else 0
-                                        snp_pos = 3020-snp_pos-1
+                                #snp_pos, snp_region = selection['Pos'].values[0], selection['Region'].values[0]
+                                #ref_allele, alt_allele = selection['Ref'].values[0], selection['Alt'].values[0]
+                                complements = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C', 'N': 'N'}
 
                                 if st.button('Mutate Sequence', type='primary'):
-                                    if strand == '+':
-                                        mut_cis_seq = st.session_state['cis_seq'][:snp_pos]+alt_allele+st.session_state['cis_seq'][snp_pos+1:]
+                                    # Initialize session cis-regulatory sequence ---------------------------
+                                    if "cis_seq" not in st.session_state:
+                                        st.session_state['cis_seq'] = seq
+                                    if st.session_state.current_gene != gene_id:
+                                        st.session_state.current_gene = gene_id
+                                        st.session_state['cis_seq'] = seq
+                                    mut_cis_seq = st.session_state['cis_seq']
+                                    mut_markers = []
+                                    for _, snp_pos, _, ref_allele, alt_allele, _, snp_region, snp_strand in selection.values:
 
-                                    else:
-                                        mut_cis_seq = st.session_state['cis_seq'][:snp_pos] + complements[alt_allele] + st.session_state['cis_seq'][snp_pos + 1:]
+                                        if snp_strand == '+':
+                                            if snp_region == 'Promoter':
+                                                snp_pos = snp_pos - prom_start - 1 if snp_pos != prom_start else 0
+                                                snp_pos = 0 + snp_pos
+                                            else:
+                                                snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
+                                                snp_pos = 1520 + snp_pos
+                                        else:
+                                            if snp_region == 'Promoter':
+                                                snp_pos = snp_pos - term_start - 1 if snp_pos != term_start else 0
+                                                snp_pos = 1500 - snp_pos - 1
 
+                                            else:
+                                                snp_pos = snp_pos - prom_start - 1 if snp_pos != prom_start else 0
+                                                snp_pos = 3020 - snp_pos - 1
+                                        mut_markers.append((snp_pos, '*', f'single nucleotide polymorphism ( {ref_allele} - {alt_allele} )'))
+
+                                        if snp_strand == '+':
+                                            mut_cis_seq = mut_cis_seq[:snp_pos] + alt_allele + mut_cis_seq[snp_pos+1:]
+
+                                        else:
+                                            mut_cis_seq = mut_cis_seq[:snp_pos] + complements[alt_allele] + mut_cis_seq[snp_pos + 1:]
+                                    for seq_idx in range(len(mut_cis_seq)):
+                                        if st.session_state['cis_seq'][seq_idx] != mut_cis_seq[seq_idx]:
+                                            print(st.session_state['cis_seq'][seq_idx], mut_cis_seq[seq_idx])
                                     seqs = np.array([one_hot_encode(i) for i in [st.session_state['cis_seq'], mut_cis_seq]])
                                     preds = make_predictions(model=f'models/{deepcre_model}.h5', x=seqs)
                                     actual_scores, pred_probs, gene_names = extract_scores(seqs=seqs, pred_probs=preds,
@@ -671,7 +678,8 @@ def main():
                                     pred_chart = alt.Chart(pd.DataFrame({'Probability of high expression': pred_probs,
                                                                         'Gene ID': [gene_id,
                                                                                     f'{gene_id}: Mutated']})).mark_bar() \
-                                        .encode(x='Gene ID:N', y='Probability of high expression',
+                                        .encode(x='Gene ID:N',
+                                                y=alt.Y('Probability of high expression:Q', scale=alt.Scale(domain=[0, 1])),
                                                 color=alt.Color('Gene ID:N', scale=alt.Scale(range=['grey', '#33BBC5'],
                                                                                             domain=[gene_id,
                                                                                                     f'{gene_id}: Mutated'])))
@@ -697,7 +705,7 @@ def main():
                                         )
 
                                         base = alt.Chart(mut_df, title=chart_title)
-                                        saliency_chart_high = base.mark_line(line=False, point=False).encode(
+                                        saliency_chart_vcf = base.mark_line(line=False, point=False).encode(
                                             x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
                                                     axis=alt.Axis(tickCount=10)),
                                             y=alt.Y('Saliency Score:Q', scale=alt.Scale(
@@ -714,7 +722,6 @@ def main():
                                         annotations = [
                                             (1000, text_y, "TSS", "Transcription Start Site"),
                                             (2020, text_y, "TTS", "Transcription Termination site"),
-                                            #(snp_pos, text_y, f'{ref_allele} - {alt_allele}', 'single nucleotide polymorphism')
                                         ]
                                         annotations_df = pd.DataFrame(
                                             annotations,
@@ -722,7 +729,7 @@ def main():
                                         )
                                         annotation_layer = (
                                             alt.Chart(annotations_df)
-                                            .mark_text(size=12, dx=0, dy=0, align="center")
+                                            .mark_text(size=15, dx=0, dy=0, align="center")
                                             .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
                                                     y=alt.Y("Saliency Score:Q"), text="marker",
                                                     tooltip="description")
@@ -734,28 +741,28 @@ def main():
                                         )
 
                                         # SNP marking
-                                        snp_annotation_df = pd.DataFrame([(snp_pos, text_y, f'{ref_allele} - {alt_allele}', 'single nucleotide polymorphism')],
-                                                                        columns=["Nucleotide Position", "Saliency Score", "marker", "description"])
+                                        snp_annotation_df = pd.DataFrame(mut_markers,
+                                                                        columns=["Nucleotide Position", "marker", "description"])
+                                        snp_annotation_df["Saliency Score"] = [text_y]*len(mut_markers)
 
                                         snp_annotation_layer = (
                                             alt.Chart(snp_annotation_df)
-                                            .mark_text(size=15, dx=0, dy=0, align="center", color='red')
+                                            .mark_text(size=12, dx=0, dy=0, align="center", color='red')
                                             .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
                                                     y=alt.Y("Saliency Score:Q"), text="marker",
                                                     tooltip="description"))
 
-                                        snp_rule = base.mark_rule(strokeDash=[2, 2]).encode(
-                                            x=alt.datum(snp_pos),
-                                            color=alt.value("silver")
-                                        )
-                                        saliency_chart_high = saliency_chart_high + snp_rule + snp_annotation_layer + rule + annotation_layer
-                                        st.altair_chart(saliency_chart_high, use_container_width=True, theme=None)
+                                        for nucl_pos in snp_annotation_df['Nucleotide Position'].values.tolist():
+                                            snp_rule = base.mark_rule(strokeDash=[2, 2]).encode(
+                                                x=alt.datum(nucl_pos),
+                                                color=alt.value("silver")
+                                            )
+                                            saliency_chart_vcf = saliency_chart_vcf + snp_rule
+                                        saliency_chart_vcf = saliency_chart_vcf + snp_annotation_layer + rule + annotation_layer
+                                        st.altair_chart(saliency_chart_vcf, use_container_width=True, theme=None)
 
                         else:
                             st.write(':red[Warning: Please upload a .gz file]')
-
-
-
 
 
 if __name__ == '__main__':
