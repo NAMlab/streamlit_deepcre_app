@@ -533,79 +533,45 @@ def main():
 
                     # Initialize session state promoter and terminator sequences ---------------------------
 
-                    if "prom_seq" not in st.session_state:
-                        st.session_state['prom_seq'] = seq[:1500]
-                    if "term_seq" not in st.session_state:
-                        st.session_state['term_seq'] = seq[1520:]
                     if st.session_state.current_gene != gene_id:
-                        st.session_state['prom_seq'] = seq[:1500]
-                        st.session_state['term_seq'] = seq[1520:]
                         st.session_state.current_gene = gene_id
+                    sel_region = st.radio(label='Select :green[**region**] to mutate',
+                                          options=["promoter", "5'UTR", "3'UTR", "terminator"])
+                    region_to_coords = {'promoter': [0, 0, 1000],
+                                        'terminator': [2019, 2019, 3020],
+                                        "5'UTR": [1000, 1000, 1000 + utr_len],
+                                        "3'UTR": [1000 + utr_len + central_pad_size, 1000 + utr_len + central_pad_size,
+                                                  2019]}
+                    start_to_mut, end_to_mut, _ = st.columns([0.1, 0.1, 0.8])
+                    val, min_val, max_val = region_to_coords[sel_region]
+                    slider_col, extracted_seq_col = st.columns([0.4, 0.6])
+                    if 'mutated_seq' not in st.session_state:
+                        st.session_state.mutated_seq = seq
 
-                    prom_col, term_col = st.columns([0.5, 0.5])
-                    with prom_col:
-                        st.subheader("Mutate Promoter")
-                        with st.form('promoter_coords', clear_on_submit=False, border=False):
-                            row = st.columns([0.1, 0.1, 0.8])
-                            with row[0]:
-                                prom_mut_start = st.number_input(label='Start', value=0, min_value=0, max_value=1500)
-                            with row[1]:
-                                prom_mut_end = st.number_input(label='End', value=1500,  min_value=0, max_value=1500)
-                            st.form_submit_button('submit')
+                    with slider_col:
+                        with st.form('mutation_form', clear_on_submit=False, border=False):
+                            slider_vals = st.slider('Select :green[**Start**] and :green[**End**] coordinates',
+                                                    min_value=val, max_value=max_val, value=(min_val, max_val), step=1)
+                            st.form_submit_button('submit', type="primary")
 
-                        prom_slider = [prom_mut_start, prom_mut_end]
-                        prom_subseq = st.text_area(label='Target promoter region',
-                                                value=seq[prom_slider[0]:prom_slider[1]],
-                                                max_chars=len(seq[prom_slider[0]:prom_slider[1]]),
-                                                height=50, key="prom_sub_seq")
+                    mut_reg_start, mut_reg_end = slider_vals
+                    sub_seq_to_mutate = st.session_state.mutated_seq[mut_reg_start:mut_reg_end]
+                    len_sub_seq = len(sub_seq_to_mutate)
+                    if len_sub_seq != mut_reg_end - mut_reg_start:
+                        sub_seq_to_mutate = sub_seq_to_mutate + 'N' * (mut_reg_end - mut_reg_start - len_sub_seq)
+                    if "sub_seq_to_mutate" not in st.session_state:
+                        st.session_state.sub_seq_to_mutate = sub_seq_to_mutate
+                    with extracted_seq_col:
+                        extracted_sub_seq = st.text_area(label=f'Target {sel_region} region ({mut_reg_start} - {mut_reg_end})',
+                                                         value=st.session_state.mutated_seq[mut_reg_start:mut_reg_end],
+                                                         max_chars=len(st.session_state.mutated_seq[mut_reg_start:mut_reg_end]),
+                                                         height=50, key="sub_seq_to_mutate")
+                        if len(extracted_sub_seq) != mut_reg_end - mut_reg_start:
+                            extracted_sub_seq = extracted_sub_seq + 'N'*(mut_reg_end - mut_reg_start - len(extracted_sub_seq))
+                        if st.button('Mutate', type="primary"):
+                            st.session_state.mutated_seq = st.session_state.mutated_seq[:mut_reg_start] + extracted_sub_seq + st.session_state.mutated_seq[mut_reg_end:]
 
-                        # Resetting and Mutating
-                        reset_cols = st.columns([0.2, 0.2, 0.6])
-                        def reset_promoter_seq():
-                            st.session_state["prom_sub_seq"] = seq[prom_slider[0]:prom_slider[1]]
-                            st.session_state.prom_seq = seq[:1500]
-
-                        with reset_cols[0]:
-                            if st.button('Mutate promoter', type="primary"):
-                                promoter = st.session_state['prom_seq'][:prom_slider[0]] + prom_subseq + st.session_state['prom_seq'][prom_slider[1]:1500]
-                                st.session_state['prom_seq'] = promoter
-                            else:
-                                promoter = st.session_state['prom_seq']
-                        with reset_cols[1]:
-                            st.button('Reset promoter', type="primary", on_click=reset_promoter_seq)
-                    with term_col:
-                        st.subheader("Mutate Terminator")
-                        with st.form('terminator_coords', clear_on_submit=False, border=False):
-                            row = st.columns([0.1, 0.1, 0.8])
-                            with row[0]:
-                                term_mut_start = st.number_input(label='Start', value=1520, min_value=1520, max_value=3020)
-                            with row[1]:
-                                term_mut_end = st.number_input(label='End', value=3020,  min_value=1520, max_value=3020)
-                            st.form_submit_button('submit')
-                        term_slider = [term_mut_start, term_mut_end]
-                        term_subseq = st.text_area(label='Target terminator region',
-                                                value=seq[term_slider[0]:term_slider[1]],
-                                                max_chars=len(seq[term_slider[0]:term_slider[1]]),
-                                                height=50, key="term_sub_seq")
-
-                        # Resetting and Mutating buttons
-                        reset_cols = st.columns([0.2, 0.2, 0.6])
-                        def reset_terminator_seq():
-                            st.session_state['term_sub_seq'] = seq[term_slider[0]:term_slider[1]]
-                            st.session_state.term_seq = seq[1520:]
-
-                        with reset_cols[0]:
-                            if st.button('Mutate terminator', type="primary"):
-                                terminator = st.session_state['term_seq'][(1520-1520):(term_slider[0]-1520)] + term_subseq + st.session_state['term_seq'][(term_slider[1]-1520):(3020-1520)]
-                                st.session_state['term_seq'] = terminator
-                            else:
-                                terminator = st.session_state['term_seq']
-                        with reset_cols[1]:
-                            st.button("Reset terminator", type="primary", on_click=reset_terminator_seq)
-
-                    n_pad = 3020 - len(promoter) - len(terminator)
-                    new_seq = promoter + 'N'*n_pad + terminator
-                    seqs = np.array([one_hot_encode(i) for i in [seq, new_seq]])
+                    seqs = np.array([one_hot_encode(i) for i in [seq, st.session_state.mutated_seq]])
                     preds = make_predictions(model=f'models/{deepcre_model}.h5', x=seqs)
                     actual_scores, pred_probs, gene_names = extract_scores(seqs=seqs, pred_probs=preds,
                                                                         genes=[gene_id, f'{gene_id}: Mutated'],
@@ -714,10 +680,9 @@ def main():
                         st.altair_chart(saliency_chart_mut, use_container_width=True, theme=None)
 
                     def reset_seq():
-                        st.session_state["prom_sub_seq"] = seq[prom_slider[0]:prom_slider[1]]
-                        st.session_state['term_sub_seq'] = seq[term_slider[0]:term_slider[1]]
-                        st.session_state.prom_seq = seq[:1500]
-                        st.session_state.term_seq = seq[1520:]
+                        st.session_state.mutated_seq = seq
+                        st.session_state.sub_seq_to_mutate = seq[mut_reg_start:mut_reg_end]
+
                     st.button('Reset', type="primary", on_click=reset_seq)
 
                 else:
