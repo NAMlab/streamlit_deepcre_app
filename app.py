@@ -512,19 +512,24 @@ def main():
 
 
             with mutations_tab:
-                mut_col, _ = st.columns([0.1, 0.9])
+                mut_col, _ = st.columns([0.2, 0.8])
                 with mut_col:
-                    mutate_analysis_type = st.selectbox('Type of mutation analysis', options=['manual', 'VCF'])
-                if mutate_analysis_type == 'manual':
+                    mutate_analysis_type = st.radio(':gray[Choose] :green[**analysis type**]',
+                                                    options=['**manual**', '**VCF**'],
+                                                    captions=[
+                                                        "Manually mutate sequence",
+                                                        "Use natural variants from VCF"
+                                                    ])
+                if mutate_analysis_type == '**manual**':
                     gene_col, _ = st.columns([0.3, 0.7])
                     with gene_col:
-                        gene_id = st.selectbox(label='Choose gene', options=gene_ids)
+                        gene_id = st.selectbox(label=':gray[Select] :green[**gene**]', options=gene_ids)
                         seq = one_hot_to_dna(x[gene_ids.index(gene_id)])[0]
-                        if 'current_gene' not in st.session_state:
-                            st.session_state.current_gene = gene_id
                         start, end = gene_starts[gene_ids.index(gene_id)], gene_ends[gene_ids.index(gene_id)]
                         utr_len = 500 if abs(start - end) // 2 > 500 else abs(end - start) // 2
                         central_pad_size = 3020 - (1000 + utr_len) * 2
+                        if 'current_gene' not in st.session_state:
+                            st.session_state.current_gene = gene_id
 
                     # Initialize session state promoter and terminator sequences ---------------------------
 
