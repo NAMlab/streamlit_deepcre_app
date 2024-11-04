@@ -102,12 +102,12 @@ def main():
 
 
     if organism == "New":
-        genome = st.sidebar.file_uploader(label="genome", accept_multiple_files=False,
+        genome = st.sidebar.file_uploader(label="genome", accept_multiple_files=False, type=['.fa', '.gz'],
                                           help="""upload a genome in FASTA format. File should be in .gz format, for example
                                           Zea_mays.Zm-B73-REFERENCE-NAM-5.0.dna.toplevel.fa.gz""")
         if genome is not None:
             genome = check_file(file=genome, file_type="genome")
-        annot = st.sidebar.file_uploader(label="gtf/gff3", accept_multiple_files=False,
+        annot = st.sidebar.file_uploader(label="gtf/gff3", accept_multiple_files=False, type=['.gtf', '.gff3', '.gff', '.gz'],
                                          help="""upload a gtf/gff3 file. File should be in .gz format, for example
                                          Zea_mays.Zm-B73-REFERENCE-NAM-5.0.60.gtf.gz""")
         if annot is not None:
@@ -117,8 +117,8 @@ def main():
         genome = available_genomes.loc[available_genomes["display_name"] == organism, "assembly_file"].values[0]
         annot = available_genomes.loc[available_genomes["display_name"] == organism, "annotation_file"].values[0]
         new = False
-    genes_list = st.sidebar.file_uploader(label="genes",
-                                          help="""upload a csv file of max 1000 gene IDs.
+    genes_list = st.sidebar.file_uploader(label="genes", type=['.csv', '.txt'], accept_multiple_files=False,
+                                          help="""upload a list of max 1000 gene IDs.
                                            Each gene ID must be on a new line. If genes are more than 1000, the
                                            first 1000 genes will be analysed.""")
     if genes_list is not None:
@@ -718,7 +718,8 @@ def main():
                 else:
                     file_upload, _ = st.columns([0.3, 0.7])
                     with file_upload:
-                        vcf_file = st.file_uploader(label='VCF file', accept_multiple_files=False)
+                        vcf_file = st.file_uploader(label='VCF file', accept_multiple_files=False, type=['.gz'],
+                                                    help="""upload a VCF file. File should be in .gz format""")
                     if vcf_file is not None:
                         if vcf_file.name.endswith('.gz'):
                             vcf_file = io.BytesIO(vcf_file.read())
