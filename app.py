@@ -525,13 +525,13 @@ def main():
                         start, end = gene_starts[gene_ids.index(gene_id)], gene_ends[gene_ids.index(gene_id)]
                         utr_len = 500 if abs(start - end) // 2 > 500 else abs(end - start) // 2
                         central_pad_size = 3020 - (1000 + utr_len) * 2
-                        if 'current_gene' not in st.session_state:
+                        if 'current_gene' not in st.session_state or st.session_state.current_gene != gene_id:
                             st.session_state.current_gene = gene_id
+                        if 'mutated_seq' not in st.session_state or st.session_state.mutated_seq != seq:
+                            st.session_state.mutated_seq = seq
 
                     # Initialize session state promoter and terminator sequences ---------------------------
 
-                    if st.session_state.current_gene != gene_id:
-                        st.session_state.current_gene = gene_id
                     sel_region = st.radio(label='Select :green[**region**] to mutate',
                                           options=["promoter", "5'UTR", "3'UTR", "terminator"])
                     region_to_coords = {'promoter': [0, 0, 1000],
@@ -542,8 +542,6 @@ def main():
                     start_to_mut, end_to_mut, _ = st.columns([0.1, 0.1, 0.8])
                     val, min_val, max_val = region_to_coords[sel_region]
                     slider_col, extracted_seq_col = st.columns([0.4, 0.6])
-                    if 'mutated_seq' not in st.session_state:
-                        st.session_state.mutated_seq = seq
 
                     with slider_col:
                         with st.form('mutation_form', clear_on_submit=False, border=False):
