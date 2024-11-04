@@ -3,3 +3,6 @@ maxUploadSize = 5000
 
 [theme]
 font='sans serif'
+
+[global]
+disableWidgetStateDuplicationWarning = true
