@@ -13,7 +13,6 @@ tf.compat.v1.disable_eager_execution()
 tf.compat.v1.disable_v2_behavior()
 tf.config.set_visible_devices([], 'GPU')
 
-
 def main():
     st.set_page_config(layout="wide", page_title='deepCRE')
     color_palette_low_high = ['#4F1787', '#EB3678']
@@ -112,11 +111,9 @@ def main():
                                          Zea_mays.Zm-B73-REFERENCE-NAM-5.0.60.gtf.gz""")
         if annot is not None:
             annot = check_file(file=annot, file_type="GTF/GFF3")
-        new = True
     else:
         genome = available_genomes.loc[available_genomes["display_name"] == organism, "assembly_file"].values[0]
         annot = available_genomes.loc[available_genomes["display_name"] == organism, "annotation_file"].values[0]
-        new = False
     genes_list = st.sidebar.file_uploader(label="genes", type=['.csv', '.txt'], accept_multiple_files=False,
                                           help="""upload a list of max 1000 gene IDs.
                                            Each gene ID must be on a new line. If genes are more than 1000, the
