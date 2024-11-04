@@ -308,7 +308,48 @@ def main():
                                 y=alt.Y("Saliency Score:Q"), text="marker",
                                 tooltip="description")
                     )
-                    saliency_chart = saliency_chart + annotation_layer
+                    span_prom = alt.Chart(pd.DataFrame({'x1': [0], 'x2': [999]})).mark_rect(
+                        opacity=0.1,
+                    ).encode(
+                        x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                title='Nucleotide Position'),
+                        x2='x2',
+                        color=alt.value('grey'),
+                        tooltip=alt.value("promoter")
+                    )
+
+                    span_5utr = alt.Chart(
+                        pd.DataFrame({'x1': [1000], 'x2': [1499]})).mark_rect(
+                        opacity=0.1,
+                    ).encode(
+                        x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                title='Nucleotide Position'),
+                        x2='x2',  # alt.datum(2019),
+                        color=alt.value('red'),
+                        tooltip=alt.value("5' UTR")
+                    )
+
+                    span_3utr = alt.Chart(pd.DataFrame(
+                        {'x1': [1519], 'x2': [2019]})).mark_rect(
+                        opacity=0.1,
+                    ).encode(
+                        x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                title='Nucleotide Position'),
+                        x2='x2',  # alt.datum(2019),
+                        color=alt.value('cornflowerblue'),
+                        tooltip=alt.value("3' UTR")
+                    )
+
+                    span_term = alt.Chart(pd.DataFrame({'x1': [2020], 'x2': [3020]})).mark_rect(
+                        opacity=0.1,
+                    ).encode(
+                        x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                title='Nucleotide Position'),
+                        x2='x2',
+                        color=alt.value('grey'),
+                        tooltip=alt.value("terminator")
+                    )
+                    saliency_chart = span_prom + span_5utr + span_3utr + span_term + saliency_chart + annotation_layer
                     st.altair_chart(saliency_chart, use_container_width=True, theme=None)
 
                 with sal_scat:
@@ -396,7 +437,49 @@ def main():
                             color=alt.value("black")
                         )
 
-                        saliency_chart_high = saliency_chart_high + annotation_layer + rule
+                        span_prom = alt.Chart(pd.DataFrame({'x1': [0], 'x2': [999]})).mark_rect(
+                            opacity=0.1,
+                        ).encode(
+                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                    title='Nucleotide Position'),
+                            x2='x2',
+                            color=alt.value('grey'),
+                            tooltip=alt.value("promoter")
+                        )
+
+                        span_5utr = alt.Chart(
+                            pd.DataFrame({'x1': [1000], 'x2': [1499]})).mark_rect(
+                            opacity=0.1,
+                        ).encode(
+                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                    title='Nucleotide Position'),
+                            x2='x2',  # alt.datum(2019),
+                            color=alt.value('red'),
+                            tooltip=alt.value("5' UTR")
+                        )
+
+                        span_3utr = alt.Chart(pd.DataFrame(
+                            {'x1': [1519], 'x2': [2019]})).mark_rect(
+                            opacity=0.1,
+                        ).encode(
+                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                    title='Nucleotide Position'),
+                            x2='x2',  # alt.datum(2019),
+                            color=alt.value('cornflowerblue'),
+                            tooltip=alt.value("3' UTR")
+                        )
+
+                        span_term = alt.Chart(pd.DataFrame({'x1': [2020], 'x2': [3020]})).mark_rect(
+                            opacity=0.1,
+                        ).encode(
+                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                    title='Nucleotide Position'),
+                            x2='x2',
+                            color=alt.value('grey'),
+                            tooltip=alt.value("terminator")
+                        )
+
+                        saliency_chart_high = span_prom + span_5utr + span_3utr + span_term + saliency_chart_high + annotation_layer + rule
                         st.altair_chart(saliency_chart_high, use_container_width=True, theme=None)
 
                 with sal_scat_nucl:
@@ -424,6 +507,7 @@ def main():
                                                 scale=alt.Scale(range=['green', 'cornflowerblue', 'darkorange',  'red'],
                                                                 domain=['A', 'C', 'G', 'T']))
                             )
+
                             st.altair_chart(saliency_scat, use_container_width=True, theme=None)
 
 
@@ -438,6 +522,9 @@ def main():
                         seq = one_hot_to_dna(x[gene_ids.index(gene_id)])[0]
                         if 'current_gene' not in st.session_state:
                             st.session_state.current_gene = gene_id
+                        start, end = gene_starts[gene_ids.index(gene_id)], gene_ends[gene_ids.index(gene_id)]
+                        utr_len = 500 if abs(start - end) // 2 > 500 else abs(end - start) // 2
+                        central_pad_size = 3020 - (1000 + utr_len) * 2
 
                     # Initialize session state promoter and terminator sequences ---------------------------
 
@@ -546,6 +633,7 @@ def main():
                         )
 
                         base = alt.Chart(mut_df, title=chart_title)
+
                         saliency_chart_mut = base.mark_line(line=False, point=False).encode(
                             x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
                                     axis=alt.Axis(tickCount=10)),
@@ -580,7 +668,44 @@ def main():
                             color=alt.value("black")
                         )
 
-                        saliency_chart_mut = saliency_chart_mut + annotation_layer + rule
+                        span_prom = alt.Chart(pd.DataFrame({'x1': [0], 'x2': [999]})).mark_rect(
+                            opacity=0.1,
+                        ).encode(
+                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]), title='Nucleotide Position'),
+                            x2='x2',
+                            color=alt.value('grey'),
+                            tooltip=alt.value("promoter")
+                        )
+
+
+                        span_5utr = alt.Chart(pd.DataFrame({'x1': [1000], 'x2': [1000+utr_len]})).mark_rect(
+                            opacity=0.1,
+                        ).encode(
+                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]), title='Nucleotide Position'),
+                            x2='x2',  # alt.datum(2019),
+                            color=alt.value('red'),
+                            tooltip=alt.value("5' UTR")
+                        )
+
+                        span_3utr = alt.Chart(pd.DataFrame({'x1': [1000+utr_len+central_pad_size], 'x2': [2019]})).mark_rect(
+                            opacity=0.1,
+                        ).encode(
+                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]), title='Nucleotide Position'),
+                            x2='x2',  # alt.datum(2019),
+                            color=alt.value('cornflowerblue'),
+                            tooltip=alt.value("3' UTR")
+                        )
+
+                        span_term = alt.Chart(pd.DataFrame({'x1': [2020], 'x2': [3020]})).mark_rect(
+                            opacity=0.1,
+                        ).encode(
+                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]), title='Nucleotide Position'),
+                            x2='x2',
+                            color=alt.value('grey'),
+                            tooltip=alt.value("terminator")
+                        )
+
+                        saliency_chart_mut = span_prom + span_5utr + span_3utr + span_term + saliency_chart_mut + annotation_layer + rule
                         st.altair_chart(saliency_chart_mut, use_container_width=True, theme=None)
 
                     def reset_seq():
@@ -756,7 +881,49 @@ def main():
                                                 color=alt.value("silver")
                                             )
                                             saliency_chart_vcf = saliency_chart_vcf + snp_rule
-                                        saliency_chart_vcf = saliency_chart_vcf + snp_annotation_layer + rule + annotation_layer
+                                        span_prom = alt.Chart(pd.DataFrame({'x1': [0], 'x2': [999]})).mark_rect(
+                                            opacity=0.1,
+                                        ).encode(
+                                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                                    title='Nucleotide Position'),
+                                            x2='x2',
+                                            color=alt.value('grey'),
+                                            tooltip=alt.value("promoter")
+                                        )
+
+                                        span_5utr = alt.Chart(
+                                            pd.DataFrame({'x1': [1000], 'x2': [1000 + utr_len]})).mark_rect(
+                                            opacity=0.1,
+                                        ).encode(
+                                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                                    title='Nucleotide Position'),
+                                            x2='x2',  # alt.datum(2019),
+                                            color=alt.value('red'),
+                                            tooltip=alt.value("5' UTR")
+                                        )
+
+                                        span_3utr = alt.Chart(pd.DataFrame(
+                                            {'x1': [1000 + utr_len + central_pad_size], 'x2': [2019]})).mark_rect(
+                                            opacity=0.1,
+                                        ).encode(
+                                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                                    title='Nucleotide Position'),
+                                            x2='x2',  # alt.datum(2019),
+                                            color=alt.value('cornflowerblue'),
+                                            tooltip=alt.value("3' UTR")
+                                        )
+
+                                        span_term = alt.Chart(pd.DataFrame({'x1': [2020], 'x2': [3020]})).mark_rect(
+                                            opacity=0.1,
+                                        ).encode(
+                                            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
+                                                    title='Nucleotide Position'),
+                                            x2='x2',
+                                            color=alt.value('grey'),
+                                            tooltip=alt.value("terminator")
+                                        )
+
+                                        saliency_chart_vcf = span_prom + span_5utr + span_3utr + span_term + saliency_chart_vcf + snp_annotation_layer + rule + annotation_layer
                                         st.altair_chart(saliency_chart_vcf, use_container_width=True, theme=None)
 
                         else:
