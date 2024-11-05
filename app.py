@@ -527,7 +527,6 @@ def main():
                         central_pad_size = 3020 - (1000 + utr_len) * 2
                         if 'current_gene' not in st.session_state or st.session_state.current_gene != gene_id:
                             st.session_state.current_gene = gene_id
-                        if 'mutated_seq' not in st.session_state or st.session_state.mutated_seq != seq:
                             st.session_state.mutated_seq = seq
 
                     # Initialize session state promoter and terminator sequences ---------------------------
@@ -691,7 +690,7 @@ def main():
                             vcf_df = prepare_vcf(uploaded_file=vcf_file)
                             vcf_col, gene_col, _ = st.columns([0.4, 0.5, 0.1], vertical_alignment='center')
                             with vcf_col:
-                                st.write('Here are your first 50 SNPs')
+                                st.write('Here are your first 50 :green[**SNPs**]')
                                 st.dataframe(vcf_df.head(50))
                             with gene_col:
                                 gene_id = st.selectbox(label='Choose gene', options=gene_ids)
@@ -715,9 +714,9 @@ def main():
                                 snps_cis_regions.reset_index(drop=True, inplace=True)
                                 if 'current_gene' not in st.session_state:
                                     st.session_state.current_gene = gene_id
-                                st.write(f'These are the SNPs in the cis-regulatory regions of ' + f':blue[{gene_id}]')
+                                st.write(f'These are the SNPs in the cis-regulatory regions of ' + f':green[**{gene_id}**]')
                                 selection = dataframe_with_selections(df=snps_cis_regions)
-                                st.write('Here is your selected SNP')
+                                st.write('Here are your selected SNPs')
                                 st.dataframe(selection, use_container_width=True)
                             if not selection.empty:
                                 prom_start, prom_end = start-1000, start+utr_len
@@ -834,19 +833,13 @@ def main():
                                                                         columns=["Nucleotide Position", "marker", "description"])
                                         snp_annotation_df["Saliency Score"] = [text_y]*len(mut_markers)
 
-                                        snp_annotation_layer = (
-                                            alt.Chart(snp_annotation_df)
-                                            .mark_text(size=15, dx=0, dy=0, align="center", color='red')
-                                            .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
-                                                    y=alt.Y("Saliency Score:Q"), text="marker",
-                                                    tooltip="description"))
-
-                                        for nucl_pos in snp_annotation_df['Nucleotide Position'].values.tolist():
-                                            snp_rule = base.mark_rule(strokeDash=[2, 2]).encode(
-                                                x=alt.datum(nucl_pos, scale=alt.Scale(domain=[1, 3021])),
-                                                color=alt.value("silver")
+                                        snp_annotation_layer = alt.Chart(snp_annotation_df).mark_rule(strokeDash=[2, 2]).encode(
+                                            x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021])),
+                                            text='marker:N',
+                                            color=alt.value("gray"),
+                                            tooltip="description",
+                                            size=alt.value(3)
                                             )
-                                            saliency_chart_vcf = saliency_chart_vcf + snp_rule
                                         span_prom = alt.Chart(pd.DataFrame({'x1': [0], 'x2': [999]})).mark_rect(
                                             opacity=0.1,
                                         ).encode(
@@ -889,7 +882,7 @@ def main():
                                             tooltip=alt.value("terminator")
                                         )
 
-                                        saliency_chart_vcf = span_prom + span_5utr + span_3utr + span_term + saliency_chart_vcf + snp_annotation_layer + rule + annotation_layer
+                                        saliency_chart_vcf = span_prom + span_5utr + span_3utr + span_term + snp_annotation_layer + saliency_chart_vcf + rule + annotation_layer
                                         st.altair_chart(saliency_chart_vcf, use_container_width=True, theme=None)
 
                         else:
