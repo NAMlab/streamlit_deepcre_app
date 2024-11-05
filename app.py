@@ -10,7 +10,7 @@ from lib.ui.about import show_about_tab
 from lib.ui.sidebar import show_sidebar
 from lib.ui.predictions import show_predictions_tab
 from lib.ui.saliency import show_saliency_tab
-from lib.ui.mutation import choose_analysis_type, show_manual_mutation, show_mutation_results, show_vcf_input, show_vcf_results
+from lib.ui.mutation import choose_analysis_type, show_manual_mutation, show_mutation_results, show_vcf_input
 tf.compat.v1.disable_eager_execution()
 tf.compat.v1.disable_v2_behavior()
 tf.config.set_visible_devices([], 'GPU')
@@ -48,7 +48,9 @@ def main():
         show_about_tab(available_genomes)
 
 
-    x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
+    x = None
+    if genome is not None and annotation is not None:
+        x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
                                                                                                                 annot=annotation,
                                                                                                                 gene_list=st.session_state.selected_genes,
                                                                                                                 use_example=use_example)
