@@ -48,7 +48,9 @@ def main():
         show_about_tab(available_genomes)
 
 
-    x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
+    x = None
+    if genome is not None and annotation is not None:
+        x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
                                                                                                                 annot=annotation,
                                                                                                                 gene_list=st.session_state.selected_genes,
                                                                                                                 use_example=use_example)
