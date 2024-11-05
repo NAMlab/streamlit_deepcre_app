@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from typing import Any
-from io import StringIO
 from deeplift.dinuc_shuffle import dinuc_shuffle
 import shap
 import streamlit as st
@@ -44,8 +43,11 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, use
     genome = read_genome(genome) 
     gene_models = read_gene_models(annot)
 
-    if gene_list is not None:
-        genes = pd.read_csv(StringIO(gene_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()
+    if use_example:
+        # If no genes are provided, we just show results for 100 random ones
+        gene_models_overlap = gene_models.sample(n=100)
+    elif gene_list is not None:
+        genes = gene_list
         if len(genes) > 1000:
             st.warning(":red[You uploaded more than 1000 genes. Only the first 1000 genes will be considered for the analysis.]")
             genes = genes[:1000]
@@ -56,9 +58,6 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, use
                     "Here are 8 random genes from the genome: " + 
                     ', '.join(np.random.choice(gene_models['gene_id'].values, 8)))
             return None, None, None, None, None, None, None, None
-    elif use_example:
-        # If no genes are provided, we just show results for 100 random ones
-        gene_models_overlap = gene_models.sample(n=100)
     else:
         return None, None, None, None, None, None, None, None
     expected_final_size = 2 * (upstream + downstream) + 20
