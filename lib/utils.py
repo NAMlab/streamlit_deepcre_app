@@ -24,7 +24,6 @@ def one_hot_encode(sequence: str,
     return hash_table[to_uint8(sequence)]
 
 
-@st.cache_data(ttl=3600)
 def one_hot_to_dna(one_hot):
     one_hot = np.expand_dims(one_hot, axis=0) if len(one_hot.shape) == 2 else one_hot
     bases = np.array(["A", "C", "G", "T", "N"])
@@ -126,7 +125,6 @@ def combine_mult_and_diffref(mult, orig_inp, bg_data):
         to_return.append(np.mean(projected_hypothetical_contribs, axis=0))
     return to_return
 
-@st.cache_data(ttl=3600)
 def compute_actual_hypothetical_scores(x, model):
     model = load_model(model)
     shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough
@@ -140,7 +138,6 @@ def compute_actual_hypothetical_scores(x, model):
     return actual_scores
 
 
-@st.cache_resource(ttl=3600)
 def extract_scores(seqs, pred_probs, genes, model, separate=True):
     if separate:
         x_low, x_high, g_low, g_high, probs_low, probs_high = [], [], [], [], [], []
@@ -162,13 +159,11 @@ def extract_scores(seqs, pred_probs, genes, model, separate=True):
         actual_scores = compute_actual_hypothetical_scores(x=seqs, model=model)
         return actual_scores, pred_probs, genes
 
-@st.cache_resource(ttl=3600)
 def make_predictions(model, x):
     model = load_model(model)
     preds = model.predict(x).ravel()
     return preds
 
-@st.cache_data(ttl=3600)
 def prepare_vcf(uploaded_file):
     lines = []
     with gzip.open(filename=uploaded_file, mode='rt') as fin:
