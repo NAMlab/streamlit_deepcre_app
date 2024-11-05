@@ -1,11 +1,9 @@
 import os
 import numpy as np
-import streamlit as st
-from lib.utils import one_hot_to_dna, one_hot_encode, prepare_vcf
+from lib.utils import one_hot_to_dna, one_hot_encode
 from lib.utils import dataframe_with_selections
 import pandas as pd
 import tensorflow as tf
-import io
 from lib.ui.about import show_about_tab
 from lib.ui.sidebar import show_sidebar
 from lib.ui.predictions import show_predictions_tab
@@ -34,24 +32,25 @@ def main():
     validateDataset(genome, annotation, genes_list, use_example)
     validateModel(f'models/{selected_model}.h5')
 
-    if genome is not None and annotation is not None:
-        if genes_list is None:
-            if use_example:
-                st.warning(f":red[No gene list uploaded. Displaying results for 100 random genes from the {selected_organism} genome.]",
-                            icon="⚠️")
-            else:
-                st.info("""Currently you have not uploaded any data for processing. To see how our tool works please 
-                            check the "Use 100 random genes from the genome" box. This will run our tool on 100 sampled genes from the selected 
-                            genome. To use your own genes of interest, please uploaded a list of genes at the
-                            upload section to the left.
-                            """, icon="ℹ️")
-
     progress_marker = st.status('Processing data...')
     ### Three main Tabs
-    about_tab, preds_tab, interpret_tab, mutations_tab = st.tabs(['About', 'Predictions', 'Saliency Maps', 'Mutation Analysis'])
-
+    about_tab, preds_tab, interpret_tab, mutations_tab = st.tabs(['Home', 'Predictions', 'Saliency Maps', 'Mutation Analysis'])
     with about_tab:
         show_about_tab(available_genomes)
+
+    with preds_tab:
+        if genome is not None and annotation is not None:
+            if genes_list is None:
+                if use_example:
+                    st.warning(f":red[No gene list uploaded. Displaying results for 100 random genes from the {selected_organism} genome.]",
+                                icon="⚠️")
+                else:
+                    st.info("""Currently you have not uploaded any data for processing. To see how our tool works please 
+                                check the "Use 100 random genes from the genome" box. This will run our tool on 100 sampled genes from the selected 
+                                genome. To use your own genes of interest, please uploaded a list of genes at the
+                                upload section to the left.
+                                """, icon="ℹ️")
+
 
     x = None
     if genome is not None and annotation is not None:
