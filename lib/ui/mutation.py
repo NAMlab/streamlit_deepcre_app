@@ -57,7 +57,7 @@ def show_manual_mutation(gene_id, start, end, seq, utr_len, central_pad_size):
             st.session_state.mutated_seq = st.session_state.mutated_seq[:mut_reg_start] + extracted_sub_seq + st.session_state.mutated_seq[mut_reg_end:]
     return mut_reg_start, mut_reg_end
 
-def show_manual_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, central_pad_size, mut_reg_start, mut_reg_end):
+def show_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, central_pad_size, mut_reg_start, mut_reg_end, mut_markers = None):
  
     pred_chart = alt.Chart(pd.DataFrame({'Probability of high expression':pred_probs,
                                         'Gene ID': [gene_id, f'{gene_id}: Mutated']})).mark_bar()\
@@ -119,6 +119,20 @@ def show_manual_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_le
             y=alt.datum(0),
             color=alt.value("black")
         )
+
+        # SNP marking
+        if mut_markers is not None:
+            snp_annotation_df = pd.DataFrame(mut_markers,
+                                            columns=["Nucleotide Position", "marker", "description"])
+            snp_annotation_df["Saliency Score"] = [text_y]*len(mut_markers)
+
+            snp_annotation_layer = alt.Chart(snp_annotation_df).mark_rule(strokeDash=[2, 2]).encode(
+                x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021])),
+                text='marker:N',
+                color=alt.value("gray"),
+                tooltip="description",
+                size=alt.value(3)
+                )
  
         span_prom = alt.Chart(pd.DataFrame({'x1': [0], 'x2': [999]})).mark_rect(
             opacity=0.1,
@@ -157,14 +171,18 @@ def show_manual_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_le
             tooltip=alt.value("terminator")
         )
  
-        saliency_chart_mut = span_prom + span_5utr + span_3utr + span_term + saliency_chart_mut + annotation_layer + rule
+        if mut_markers is None:
+            saliency_chart_mut = span_prom + span_5utr + span_3utr + span_term + saliency_chart_mut + annotation_layer + rule
+        else:
+            saliency_chart_mut = span_prom + span_5utr + span_3utr + span_term + snp_annotation_layer + saliency_chart_mut + rule + annotation_layer
         st.altair_chart(saliency_chart_mut, use_container_width=True, theme=None)
  
     def reset_seq():
         st.session_state.mutated_seq = seq
         st.session_state.sub_seq_to_mutate = seq[mut_reg_start:mut_reg_end]
  
-    st.button('Reset', type="primary", on_click=reset_seq)
+    if mut_markers is None:
+        st.button('Reset', type="primary", on_click=reset_seq)
 
 def show_vcf_input():
     file_upload, _ = st.columns([0.3, 0.7])
@@ -172,127 +190,3 @@ def show_vcf_input():
         vcf_file = st.file_uploader(label='VCF file', accept_multiple_files=False, type=['.gz'],
                                     help="""upload a VCF file. File should be in .gz format""")
     return vcf_file
-
-# @TODO this should be combined with the other show_vcf_results
-def show_vcf_results(gene_id, pred_probs, actual_scores, utr_len, central_pad_size, mut_markers):
-    pred_chart = alt.Chart(pd.DataFrame({'Probability of high expression': pred_probs,
-                                        'Gene ID': [gene_id,
-                                                    f'{gene_id}: Mutated']})).mark_bar() \
-        .encode(x='Gene ID:N',
-                y=alt.Y('Probability of high expression:Q', scale=alt.Scale(domain=[0, 1])),
-                color=alt.Color('Gene ID:N', scale=alt.Scale(range=['grey', '#33BBC5'],
-                                                            domain=[gene_id,
-                                                                    f'{gene_id}: Mutated'])))
-    mut_probs_col, mut_sal_map_col = st.columns([0.2, 0.9])
-    with mut_probs_col:
-        st.altair_chart(pred_chart, use_container_width=True, theme=None)
-    with mut_sal_map_col:
-        mut_df = pd.DataFrame({
-            'Saliency Score': np.concatenate(
-                [actual_scores[0].mean(axis=1), actual_scores[1].mean(axis=1)]),
-            'Gene ID': list(
-                itertools.chain(*[[gene_id] * 3020, [f'{gene_id}: Mutated'] * 3020])),
-            'Nucleotide Position': np.concatenate([np.arange(1, 3021) for _ in range(2)],
-                                                axis=0)
-        })
-
-        chart_title = alt.TitleParams(
-            f"Average Saliency Map for mutated sequence compared to the original sequence",
-            subtitle=[
-                """Saliency scores are averaged across all sequences predicted per nucleotide""",
-                f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
-            subtitleColor='grey'
-        )
-
-        base = alt.Chart(mut_df, title=chart_title)
-        saliency_chart_vcf = base.mark_line(line=False, point=False).encode(
-            x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
-                    axis=alt.Axis(tickCount=10)),
-            y=alt.Y('Saliency Score:Q', scale=alt.Scale(
-                domain=[mut_df['Saliency Score'].min(), mut_df['Saliency Score'].max()])),
-            color=alt.Color('Gene ID:N',
-                            scale=alt.Scale(range=['grey', '#33BBC5'],
-                                            domain=[gene_id, f'{gene_id}: Mutated'])),
-            opacity=alt.condition(alt.datum['Gene ID'] == gene_id, alt.value(1), alt.value(0.7))
-        )
-        max_saliency = mut_df['Saliency Score'].max()
-        mean_pos_saliency = mut_df['Saliency Score'].mean()
-        text_y = max_saliency + mean_pos_saliency
-
-        annotations = [
-            (1000, text_y, "TSS", "Transcription Start Site"),
-            (2020, text_y, "TTS", "Transcription Termination site"),
-        ]
-        annotations_df = pd.DataFrame(
-            annotations,
-            columns=["Nucleotide Position", "Saliency Score", "marker", "description"]
-        )
-        annotation_layer = (
-            alt.Chart(annotations_df)
-            .mark_text(size=15, dx=0, dy=0, align="center")
-            .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
-                    y=alt.Y("Saliency Score:Q"), text="marker",
-                    tooltip="description")
-        )
-
-        rule = base.mark_rule(strokeDash=[2, 2]).encode(
-            y=alt.datum(0),
-            color=alt.value("black")
-        )
-
-        # SNP marking
-        snp_annotation_df = pd.DataFrame(mut_markers,
-                                        columns=["Nucleotide Position", "marker", "description"])
-        snp_annotation_df["Saliency Score"] = [text_y]*len(mut_markers)
-
-        snp_annotation_layer = alt.Chart(snp_annotation_df).mark_rule(strokeDash=[2, 2]).encode(
-            x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021])),
-            text='marker:N',
-            color=alt.value("gray"),
-            tooltip="description",
-            size=alt.value(3)
-            )
-        span_prom = alt.Chart(pd.DataFrame({'x1': [0], 'x2': [999]})).mark_rect(
-            opacity=0.1,
-        ).encode(
-            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                    title='Nucleotide Position'),
-            x2='x2',
-            color=alt.value('grey'),
-            tooltip=alt.value("promoter")
-        )
-
-        span_5utr = alt.Chart(
-            pd.DataFrame({'x1': [1000], 'x2': [1000 + utr_len]})).mark_rect(
-            opacity=0.1,
-        ).encode(
-            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                    title='Nucleotide Position'),
-            x2='x2',  # alt.datum(2019),
-            color=alt.value('red'),
-            tooltip=alt.value("5' UTR")
-        )
-
-        span_3utr = alt.Chart(pd.DataFrame(
-            {'x1': [1000 + utr_len + central_pad_size], 'x2': [2019]})).mark_rect(
-            opacity=0.1,
-        ).encode(
-            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                    title='Nucleotide Position'),
-            x2='x2',  # alt.datum(2019),
-            color=alt.value('cornflowerblue'),
-            tooltip=alt.value("3' UTR")
-        )
-
-        span_term = alt.Chart(pd.DataFrame({'x1': [2020], 'x2': [3020]})).mark_rect(
-            opacity=0.1,
-        ).encode(
-            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                    title='Nucleotide Position'),
-            x2='x2',
-            color=alt.value('grey'),
-            tooltip=alt.value("terminator")
-        )
-
-        saliency_chart_vcf = span_prom + span_5utr + span_3utr + span_term + snp_annotation_layer + saliency_chart_vcf + rule + annotation_layer
-        st.altair_chart(saliency_chart_vcf, use_container_width=True, theme=None)

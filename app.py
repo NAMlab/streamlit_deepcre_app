@@ -10,7 +10,7 @@ from lib.ui.about import show_about_tab
 from lib.ui.sidebar import show_sidebar
 from lib.ui.predictions import show_predictions_tab
 from lib.ui.saliency import show_saliency_tab
-from lib.ui.mutation import choose_analysis_type, show_manual_mutation, show_manual_mutation_results, show_vcf_input, show_vcf_results
+from lib.ui.mutation import choose_analysis_type, show_manual_mutation, show_mutation_results, show_vcf_input, show_vcf_results
 tf.compat.v1.disable_eager_execution()
 tf.compat.v1.disable_v2_behavior()
 tf.config.set_visible_devices([], 'GPU')
@@ -83,7 +83,7 @@ def main():
                                                                     genes=[gene_id, f'{gene_id}: Mutated'],
                                                                     model=f'models/{selected_model}.h5',
                                                                     separate=False)
-                show_manual_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, central_pad_size, mut_reg_start, mut_reg_end)
+                show_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, central_pad_size, mut_reg_start, mut_reg_end)
 
 
             else:
@@ -166,7 +166,7 @@ def main():
                                                                                 genes=[gene_id, f'{gene_id}: Mutated'],
                                                                                 model=f'models/{selected_model}.h5',
                                                                                 separate=False)
-                            show_vcf_results(gene_id, pred_probs, actual_scores, utr_len, central_pad_size, mut_markers)
+                            show_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, central_pad_size, None, None, mut_markers)
 
 
 if __name__ == '__main__':
