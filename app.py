@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 import numpy as np
 import streamlit as st
+from io import StringIO
 from utils import prepare_dataset, extract_scores, make_predictions, one_hot_to_dna, one_hot_encode, prepare_vcf
 from utils import dataframe_with_selections, check_file
 import pandas as pd
@@ -120,6 +121,10 @@ def main():
                                            first 1000 genes will be analysed.""")
     if genes_list is not None:
         genes_list = check_file(file=genes_list, file_type="genes list")
+        if genes_list is not None:
+            st.session_state.selected_genes = pd.read_csv(StringIO(genes_list.getvalue().decode("utf-8")), header=None).values.ravel().tolist()
+    elif 'selected_genes' not in st.session_state:
+        st.session_state.selected_genes = None
     deepcre_model = st.sidebar.selectbox(label="Choose deepCRE model", options=model_names, )
     if genome is not None and annot is not None:
         if genes_list is None:
@@ -140,9 +145,11 @@ def main():
 
         x, gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, gene_strands = prepare_dataset(genome=genome,
                                                                                                                   annot=annot,
-                                                                                                                  gene_list=genes_list,
+                                                                                                                  gene_list=st.session_state.selected_genes,
                                                                                                                   use_example=use_example)
         if x is not None and x.size > 0:
+            if use_example:
+                st.session_state.selected_genes = gene_ids
             preds = make_predictions(model=f'models/{deepcre_model}.h5', x=x)
             with preds_tab:
                 predictions = pd.DataFrame(data={'Gene ID': gene_ids, 'Chromosome': [f'Chr: {i}' for i in gene_chroms],
