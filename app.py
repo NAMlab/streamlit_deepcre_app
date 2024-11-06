@@ -17,7 +17,7 @@ tf.config.set_visible_devices([], 'GPU')
 available_genomes = pd.read_csv("genomes/genomes.csv")
 species = available_genomes["display_name"].tolist()
 species.append("New")
-model_names = sorted([x.split('.')[0] for x in os.listdir('models')])
+model_names = sorted([x.split('.')[0] for x in os.listdir('models') if x.endswith('.h5')])
 color_palette_low_high = ['#4F1787', '#EB3678']
 
 def main():
@@ -29,27 +29,28 @@ def main():
     # Sidebar
     selected_organism, genome, annotation, genes_list, selected_model, use_example = show_sidebar(available_species=species, available_genomes=available_genomes,
                                                             available_models=model_names)
+    print(genes_list)
     validateDataset(genome, annotation, genes_list, use_example)
     validateModel(f'models/{selected_model}.h5')
+
+    if genome is not None and annotation is not None:
+        if genes_list is None:
+            if use_example:
+                st.warning(f":red[No gene list uploaded. Displaying results for 100 random genes from the {selected_organism} genome.]",
+                            icon="⚠️")
+            else:
+                st.info("""Currently you have not uploaded any data for processing. To see how our tool works please 
+                            check the "Use 100 random genes from the genome" box. This will run our tool on 100 sampled genes from the selected 
+                            genome. To use your own genes of interest, please uploaded a list of genes at the
+                            upload section to the left.
+                            """, icon="ℹ️")
+
 
     progress_marker = st.status('Processing data...')
     ### Three main Tabs
     about_tab, preds_tab, interpret_tab, mutations_tab = st.tabs(['Home', 'Predictions', 'Saliency Maps', 'Mutation Analysis'])
     with about_tab:
         show_about_tab(available_genomes)
-
-    with preds_tab:
-        if genome is not None and annotation is not None:
-            if genes_list is None:
-                if use_example:
-                    st.warning(f":red[No gene list uploaded. Displaying results for 100 random genes from the {selected_organism} genome.]",
-                                icon="⚠️")
-                else:
-                    st.info("""Currently you have not uploaded any data for processing. To see how our tool works please 
-                                check the "Use 100 random genes from the genome" box. This will run our tool on 100 sampled genes from the selected 
-                                genome. To use your own genes of interest, please uploaded a list of genes at the
-                                upload section to the left.
-                                """, icon="ℹ️")
 
 
     x = None
