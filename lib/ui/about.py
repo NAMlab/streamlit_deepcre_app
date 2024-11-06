@@ -57,17 +57,36 @@ def show_about_tab(available_genomes):
                 focus on during their predictions.""")
         st.image('images/image_4.png')
 
-        st.write('**Mutation Analysis**')
+        st.write('**Mutation Analysis: :red[Manual]**')
         st.write("""We also provide users two ways to perform in-silico mutagenesis and obtain predictions. This should give users
         insights into potentially positive and negative variants.""")
         st.write('1. User can choose to either manually mutate selected regions of the sequence or use SNPs from an uploaded VCF')
         st.write('2. User selects a gene of interest for the mutation analysis')
         st.write('3. User selects the region to target during mutation analysis')
-        st.write('4. Within the selected region, the user narrows down a subsequence to mutate by selecting a range.')
-        st.write('5. The sequence belonging to the selected range is extracted and presented to the user to perform mutations.')
+        st.write("""4. Within the selected region, the user narrows down a subsequence to mutate by selecting a range. After selecting
+        a range, please click :red[**submit**] so that the sequence within these range is extracted and displayed to the right.""")
+        st.write("""5. The sequence belonging to the selected range is extracted and presented to the user to perform mutations. After mutating
+        the sequence, confirm your mutations by clicking the :red[**mutate**] button. Only after confirmation will your mutations be considered.""")
+        st.write("6. This shows the new predicted probability of high expression for the original sequence compared to the mutated sequence.")
+        st.write("7. This shows the new computed saliency maps for the original sequence compared to the mutated sequence.")
+        st.write("8. To clear mutations introduce or start over the analysis, please use the :red[**reset**] button.")
         st.image('images/image_5.png')
+
+        st.write('**Mutation Analysis: :red[VCF]**')
+        st.write("""For users that wish to investigate natural occurring variants, the VCF analysis will be helpful. Once you select VCF, you will
+        be prompted with an upload area. This allows the upload of VCF files only in :red[**compressed (.gz)**] format. We advice users to first filter
+        their VCFs to keep only the variants they are interested in. Currently we only support the use of :red[**single nucleotide polymorphisms (SNPs)**].""")
         st.image('images/image_6.png')
+        st.write("1. This table displays the first 50 SNPs in the uploaded VCF file.")
+        st.write("""2. This table shows you the SNPs overlapping the selected gene of interest. These SNPs have been annotate into promoter and terminator
+        SNPs. Promoter SNPs fall within the promoter and 5'UTR while terminator SNPs fall within the terminator and 3'UTR. Users cal subset these SNPs by
+        selecting one or a few to use for downstream analysis.""")
+        st.write("""3. After selecting one or more SNPs, these will be displayed on this table.""")
+        st.write("""4. Just like in the manual mutation analysis, users must confirm their mutations before the analysis will be done. Please click the
+        :red[**Mutate Sequence**] button to confirm your selections.""")
+        st.write("6. Plots for the effects of selected mutations on the predicted probabilities of high expression and the newly computed saliency maps.")
         st.image('images/image_7.png')
+        st.write("It is also possible to use all the SNPs overlapping the gene of interest.")
         st.image('images/image_8.png')
         avail_gen, _ = st.columns([0.9, 0.1])
         prev_page, _, next_page = st.columns([1, 10, 1])
