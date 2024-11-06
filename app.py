@@ -29,7 +29,6 @@ def main():
     # Sidebar
     selected_organism, genome, annotation, genes_list, selected_model, use_example = show_sidebar(available_species=species, available_genomes=available_genomes,
                                                             available_models=model_names)
-    print(genes_list)
     validateDataset(genome, annotation, genes_list, use_example)
     validateModel(f'models/{selected_model}.h5')
 
