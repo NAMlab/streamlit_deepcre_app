@@ -40,6 +40,7 @@ def show_manual_mutation(gene_id, start, end, seq, utr_len, central_pad_size):
             st.form_submit_button('submit', type="primary")
 
     mut_reg_start, mut_reg_end = slider_vals
+    mut_reg_end = mut_reg_end + 1
     sub_seq_to_mutate = st.session_state.mutated_seq[mut_reg_start:mut_reg_end]
     len_sub_seq = len(sub_seq_to_mutate)
     if len_sub_seq != mut_reg_end - mut_reg_start:
