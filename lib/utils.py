@@ -17,6 +17,7 @@ def one_hot_encode(sequence: str,
     """One-hot encode sequence."""
     def to_uint8(string):
         return np.frombuffer(string.encode('ascii'), dtype=np.uint8)
+    sequence = sequence.upper()
     hash_table = np.zeros((np.iinfo(np.uint8).max, len(alphabet)), dtype=dtype)
     hash_table[to_uint8(alphabet)] = np.eye(len(alphabet), dtype=dtype)
     hash_table[to_uint8(neutral_alphabet)] = neutral_value
