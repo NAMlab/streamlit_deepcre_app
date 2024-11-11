@@ -151,7 +151,7 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
                 subtitleColor='grey'
             )
             base = alt.Chart(df, title=chart_title)
-            saliency_chart_high = base.mark_line(line=False, point=False).encode(
+            saliency_chart_base = base.mark_line(line=False, point=False).encode(
                 x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
                         axis=alt.Axis(tickCount=10)),
                 y=alt.Y('Saliency Score:Q', scale=alt.Scale(domain=[min_ylimit, max_ylimit])),
@@ -225,8 +225,8 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
                 tooltip=alt.value("terminator")
             )
 
-            saliency_chart_high = span_prom + span_5utr + span_3utr + span_term + saliency_chart_high + annotation_layer + rule
-            st.altair_chart(saliency_chart_high, use_container_width=True, theme=None)
+            saliency_chart_base = span_prom + span_5utr + span_3utr + span_term + saliency_chart_base + annotation_layer + rule
+            st.altair_chart(saliency_chart_base, use_container_width=True, theme=None)
 
     with sal_scat_nucl:
         for scores_arr, probs in zip([actual_scores_high, actual_scores_low], [p_h, p_l]):
