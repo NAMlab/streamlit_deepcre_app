@@ -18,7 +18,7 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
         avg_saliency = pd.DataFrame(data={
             'Saliency Score': np.concatenate([actual_scores_high.mean(axis=(0, 2)),
                                         actual_scores_low.mean(axis=(0, 2))], axis=0),
-            'Expressed': list(itertools.chain(*[['High'] * 3020, ['Low'] * 3020])),
+            'Predicted Expression Class': list(itertools.chain(*[['High'] * 3020, ['Low'] * 3020])),
             'Nucleotide Position': np.concatenate([np.arange(1, 3021), np.arange(1, 3021)], axis=0)
         })
         chart_title = alt.TitleParams(
@@ -32,12 +32,12 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
             x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
                     axis=alt.Axis(tickCount=10)),
             y='Saliency Score:Q',
-            color=alt.Color('Expressed:N',
+            color=alt.Color('Predicted Expression Class:N',
                                 scale=alt.Scale(range=color_palette_low_high,
                                                 domain=['High', 'Low']))
         )
         max_saliency = avg_saliency['Saliency Score'].max()
-        mean_pos_saliency = avg_saliency[avg_saliency['Expressed']=='High']['Saliency Score'].mean()
+        mean_pos_saliency = avg_saliency[avg_saliency['Predicted Expression Class']=='High']['Saliency Score'].mean()
         text_y = max_saliency+mean_pos_saliency
 
         annotations = [
@@ -110,7 +110,7 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
                 sum_saliency_score.append(actual_scores_low[idx].sum())
                 pred_prob.append(p_l[idx])
                 expressed.append('Low')
-        data_sal_scat = pd.DataFrame(data={'Expressed':expressed,
+        data_sal_scat = pd.DataFrame(data={'Predicted Expression Class':expressed,
                                         'Sum Saliency Score':sum_saliency_score,
                                         'Probability of high expression':pred_prob})
         chart_title = alt.TitleParams(
@@ -122,7 +122,7 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
         saliency_scat = alt.Chart(data_sal_scat, title=chart_title).mark_circle(size=25).encode(
             x=alt.X('Probability of high expression:Q'),
             y=alt.Y('Sum Saliency Score:Q'),
-            color = alt.Color('Expressed:N',
+            color = alt.Color('Predicted Expression Class:N',
                             scale=alt.Scale(range=color_palette_low_high,
                                             domain=['High', 'Low']))
         )
