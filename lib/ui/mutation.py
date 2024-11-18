@@ -73,6 +73,7 @@ def show_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, cent
     mut_probs_col, mut_sal_map_col = st.columns([0.2, 0.9])
     with mut_probs_col:
         st.altair_chart(pred_chart, use_container_width=True, theme=None)
+        st.write(f"Δ probability (actual - mutated) = **{round(float(pred_probs[0] - pred_probs[1]), 2)}**")
     with mut_sal_map_col:
         mut_df = pd.DataFrame({
             'Saliency Score': np.concatenate([actual_scores[0].mean(axis=1), actual_scores[1].mean(axis=1)]),
