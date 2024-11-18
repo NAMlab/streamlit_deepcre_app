@@ -73,7 +73,6 @@ def show_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, cent
     mut_probs_col, mut_sal_map_col = st.columns([0.2, 0.9])
     with mut_probs_col:
         st.altair_chart(pred_chart, use_container_width=True, theme=None)
-        st.write(f"Δ probability (actual - mutated) = **{round(float(pred_probs[0] - pred_probs[1]), 2)}**")
     with mut_sal_map_col:
         mut_df = pd.DataFrame({
             'Saliency Score': np.concatenate([actual_scores[0].mean(axis=1), actual_scores[1].mean(axis=1)]),
@@ -181,6 +180,9 @@ def show_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, cent
         else:
             saliency_chart_mut = span_prom + span_5utr + span_3utr + span_term + snp_annotation_layer + saliency_chart_mut + rule + annotation_layer
         st.altair_chart(saliency_chart_mut, use_container_width=True, theme=None)
+        delta_prob = round(float(pred_probs[0] - pred_probs[1]), 2)
+        st.write(f"""Δ probability = **{delta_prob}** : Mutations caused the 
+                predicted probability of the model to {'increase' if delta_prob< 0 else 'decrease'} by **{abs(delta_prob)}**""")
  
     def reset_seq():
         st.session_state.mutated_seq = seq
