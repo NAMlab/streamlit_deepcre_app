@@ -5,6 +5,10 @@ import itertools
 import pandas as pd
 import altair as alt
 
+@st.cache_data
+def prepare_saliency_data_to_download(df):
+    return df.to_csv(index=False).encode('utf-8')
+
 def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_palette_low_high):
     if actual_scores_low.shape[0] == 0:
         actual_scores_low = np.zeros_like(actual_scores_high)
@@ -16,10 +20,10 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
     sal_line, sal_scat = st.columns([0.6, 0.4], vertical_alignment='top', gap='medium')
     with sal_line:
         avg_saliency = pd.DataFrame(data={
+            'Nucleotide Position': np.concatenate([np.arange(1, 3021), np.arange(1, 3021)], axis=0),
             'Saliency Score': np.concatenate([actual_scores_high.mean(axis=(0, 2)),
                                         actual_scores_low.mean(axis=(0, 2))], axis=0),
             'Predicted Expression Class': list(itertools.chain(*[['High'] * 3020, ['Low'] * 3020])),
-            'Nucleotide Position': np.concatenate([np.arange(1, 3021), np.arange(1, 3021)], axis=0)
         })
         chart_title = alt.TitleParams(
             "Average Saliency map",
@@ -99,6 +103,9 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
         )
         saliency_chart = span_prom + span_5utr + span_3utr + span_term + saliency_chart + annotation_layer
         st.altair_chart(saliency_chart, use_container_width=True, theme=None)
+        st.download_button("Download data as csv", data=prepare_saliency_data_to_download(avg_saliency),
+                           file_name=f"data_average_saliency_plots_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                           mime="text/csv")
 
     with sal_scat:
         sum_saliency_score, pred_prob, expressed = [], [], []
@@ -231,6 +238,9 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
 
             saliency_chart_base = span_prom + span_5utr + span_3utr + span_term + saliency_chart_base + annotation_layer + rule
             st.altair_chart(saliency_chart_base, use_container_width=True, theme=None)
+            st.download_button("Download data as csv", data=prepare_saliency_data_to_download(df),
+                               file_name=f"data_saliency_plots_{df_name}_base_resolution_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                               mime="text/csv")
 
     with sal_scat_nucl:
         for scores_arr, probs in zip([actual_scores_high, actual_scores_low], [p_h, p_l]):
