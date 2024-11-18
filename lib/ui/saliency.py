@@ -28,14 +28,16 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
                 f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
             subtitleColor='grey'
         )
-        saliency_chart = alt.Chart(avg_saliency, title=chart_title).mark_area(line=True, point=False).encode(
+        # adding slider for opacity
+        op_var_avg = alt.param(value=1, bind=alt.binding_range(min=0.2, max=1, step=0.05, name='opacity:'))
+        saliency_chart = alt.Chart(avg_saliency, title=chart_title).mark_line(opacity=op_var_avg).encode(
             x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
                     axis=alt.Axis(tickCount=10)),
             y='Saliency Score:Q',
             color=alt.Color('Predicted Expression Class:N',
                                 scale=alt.Scale(range=color_palette_low_high,
                                                 domain=['High', 'Low']))
-        )
+        ).add_params(op_var_avg)
         max_saliency = avg_saliency['Saliency Score'].max()
         mean_pos_saliency = avg_saliency[avg_saliency['Predicted Expression Class']=='High']['Saliency Score'].mean()
         text_y = max_saliency+mean_pos_saliency
@@ -150,15 +152,17 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
                     f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
                 subtitleColor='grey'
             )
+            # adding slider for opacity
+            op_var_base = alt.param(value=1, bind=alt.binding_range(min=0.2, max=1, step=0.05, name='opacity:'))
             base = alt.Chart(df, title=chart_title)
-            saliency_chart_base = base.mark_line(line=False, point=False).encode(
+            saliency_chart_base = base.mark_line(opacity=op_var_base).encode(
                 x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
                         axis=alt.Axis(tickCount=10)),
                 y=alt.Y('Saliency Score:Q', scale=alt.Scale(domain=[min_ylimit, max_ylimit])),
                 color=alt.Color('Base:N',
                                 scale=alt.Scale(range=['green', 'cornflowerblue', 'darkorange',  'red'],
                                                 domain=['A', 'C', 'G', 'T']))
-            )
+            ).add_params(op_var_base)
             max_saliency = df_high['Saliency Score'].max()
             mean_pos_saliency = avg_saliency['Saliency Score'].mean()
             text_y = max_saliency + mean_pos_saliency
