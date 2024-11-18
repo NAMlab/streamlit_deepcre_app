@@ -42,10 +42,10 @@ def show_about_tab(available_genomes):
         models predict.""")
         st.image('images/image_1.png')
         st.write("""Once the data is uploaded and the list of genes uploaded or the check box to use random genes is checked. The selected
-        model swiftly makes predictions on the cis-regulatory sequences of these genes and provides results to the users.
-        1. The users get a table of genes, their predictions and useful meta-information about these genes and their cis-regulatory
-        regions.
-        2. Users also get plots such as the predicted probabilities of high expression against GC content, the distribution of
+        model swiftly makes predictions on the cis-regulatory sequences of these genes and provides results to the users.""")
+        st.write("""- The users get a table of genes, their predictions and useful meta-information about these genes and their cis-regulatory
+        regions.""")
+        st.write("""- Users also get plots such as the predicted probabilities of high expression against GC content, the distribution of
         genes on chromosomes across the genome. The plots can be downloaded any various formats and the tables can be downloaded
         as csv files.""")
         st.image('images/image_3.png')
@@ -55,6 +55,9 @@ def show_about_tab(available_genomes):
                 by their complexity. Here, we provide users model interpretation using ShAP. This tools provide nucleotide resolution
                 importance scores for every sequence. This is average across all genes to give users an overview of the regions our models
                 focus on during their predictions.""")
+        st.write("""1. Plot showing the saliency maps averaged across all genes within the provided gene set.""")
+        st.write("""2. Download button to retrieve the source data used to generate saliency plots.""")
+        st.write("""3. Opacity button to control the opacity of line plots. Users can use this to improve plot quality.""")
         st.image('images/image_4.png')
 
         st.write('**Mutation Analysis: :red[Manual]**')
