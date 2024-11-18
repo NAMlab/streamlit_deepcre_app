@@ -62,10 +62,13 @@ def show_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, cent
  
     pred_chart = alt.Chart(pd.DataFrame({'Probability of high expression':pred_probs,
                                         'Gene ID': [gene_id, f'{gene_id}: Mutated']})).mark_bar()\
-        .encode(x='Gene ID:N',
+        .encode(x=alt.X('Gene ID:N', axis=alt.Axis(labels=False, tickSize=0)),
                 y=alt.Y('Probability of high expression:Q', scale=alt.Scale(domain=[0, 1])),
                 color=alt.Color('Gene ID:N', scale=alt.Scale(range=['grey', '#33BBC5'],
-                                        domain=[gene_id, f'{gene_id}: Mutated'])))
+                                        domain=[gene_id, f'{gene_id}: Mutated']), legend=alt.Legend(orient='top',
+                                                                                                    direction='vertical',
+                                                                                                    titleAnchor='middle',
+                                                                                                    labelLimit=0)))
  
     mut_probs_col, mut_sal_map_col = st.columns([0.2, 0.9])
     with mut_probs_col:
