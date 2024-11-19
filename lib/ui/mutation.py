@@ -25,11 +25,12 @@ def show_manual_mutation(gene_id, start, end, seq, utr_len, central_pad_size):
 
     sel_region = st.radio(label='Select :green[**region**] to mutate',
                             options=["promoter", "5'UTR", "3'UTR", "terminator"])
-    region_to_coords = {'promoter': [0, 0, 1000],
-                        'terminator': [2019, 2019, 3020],
-                        "5'UTR": [1000, 1000, 1000 + utr_len],
-                        "3'UTR": [1000 + utr_len + central_pad_size, 1000 + utr_len + central_pad_size,
-                                    2019]}
+    region_to_coords = {'promoter': [1, 1, 1000],
+                        'terminator': [1001 + (2 * utr_len) + central_pad_size, 1001 + (2 * utr_len) + central_pad_size,
+                                       2000 + (2 * utr_len) + central_pad_size],
+                        "5'UTR": [1001, 1001, 1000 + utr_len],
+                        "3'UTR": [1001 + utr_len + central_pad_size, 1001 + utr_len + central_pad_size,
+                                  1000 + (2 * utr_len) + central_pad_size]}
     val, min_val, max_val = region_to_coords[sel_region]
     slider_col, extracted_seq_col = st.columns([0.4, 0.6])
 
@@ -40,7 +41,9 @@ def show_manual_mutation(gene_id, start, end, seq, utr_len, central_pad_size):
             st.form_submit_button('submit', type="primary")
 
     mut_reg_start, mut_reg_end = slider_vals
-    mut_reg_end = mut_reg_end + 1
+    mut_reg_start = mut_reg_start-1
+
+    mut_reg_end = mut_reg_end + 1 if mut_reg_start == mut_reg_end else mut_reg_end
     sub_seq_to_mutate = st.session_state.mutated_seq[mut_reg_start:mut_reg_end]
     len_sub_seq = len(sub_seq_to_mutate)
     if len_sub_seq != mut_reg_end - mut_reg_start:
@@ -180,9 +183,10 @@ def show_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, cent
         else:
             saliency_chart_mut = span_prom + span_5utr + span_3utr + span_term + snp_annotation_layer + saliency_chart_mut + rule + annotation_layer
         st.altair_chart(saliency_chart_mut, use_container_width=True, theme=None)
-        delta_prob = round(float(pred_probs[0] - pred_probs[1]), 2)
-        st.write(f"""Δ probability = **{delta_prob}** : Mutations caused the 
-                predicted probability of the model to {'increase' if delta_prob< 0 else 'decrease'} by **{abs(delta_prob)}**""")
+        delta_prob = float(pred_probs[0] - pred_probs[1])
+        if delta_prob != 0:
+            st.write(f"""Δ probability = **{delta_prob:.2f}** : Mutations caused the 
+                    predicted probability of the model to {'increase' if delta_prob< 0 else 'decrease'} by **{abs(delta_prob):.2f}**""")
  
     def reset_seq():
         st.session_state.mutated_seq = seq
