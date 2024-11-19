@@ -90,6 +90,7 @@ def show_predictions_tab(gene_ids, gene_chroms, gene_starts, gene_ends, gene_siz
                         color=alt.Color('Predicted Expression Class:N',
                                         scale=alt.Scale(range=color_palette_low_high,
                                                         domain=['High', 'Low'])),
+                        tooltip=['Predicted Expression Class', 'Probability of high expression', 'Gene size', 'Gene ID']
                     )
                     st.altair_chart(chart_hist_size, use_container_width=True, theme=None)
 
@@ -107,5 +108,6 @@ def show_predictions_tab(gene_ids, gene_chroms, gene_starts, gene_ends, gene_siz
                         color=alt.Color('Predicted Expression Class:N',
                                         scale=alt.Scale(range=color_palette_low_high,
                                                         domain=['High', 'Low'])),
+                        tooltip=['Predicted Expression Class', 'Probability of high expression', 'GC Content', 'Gene ID']
                     )
                     st.altair_chart(chart_hist_gc, use_container_width=True, theme=None)
