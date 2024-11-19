@@ -63,9 +63,9 @@ def main():
             show_predictions_tab(gene_ids, gene_chroms, gene_starts, gene_ends, gene_size, gene_gc_cont, preds, color_palette_low_high)
 
         progress_marker.update(label="Extracting saliency scores...")
-        actual_scores_low, actual_scores_high, g_h, g_l, p_l, p_h = getScores()
+        actual_scores_low, actual_scores_high, g_l, g_h, p_l, p_h = getScores()
         with interpret_tab:
-            show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_palette_low_high)
+            show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_palette_low_high, g_h, g_l)
 
         with mutations_tab:
             mutate_analysis_type = choose_analysis_type()

@@ -9,7 +9,7 @@ import altair as alt
 def prepare_saliency_data_to_download(df):
     return df.to_csv(index=False).encode('utf-8')
 
-def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_palette_low_high):
+def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_palette_low_high, g_h, g_l):
     if actual_scores_low.shape[0] == 0:
         actual_scores_low = np.zeros_like(actual_scores_high)
         p_l = [np.nan]
@@ -106,22 +106,24 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
         st.download_button("Download data as csv", data=prepare_saliency_data_to_download(avg_saliency),
                            file_name=f"data_average_saliency_plots_{datetime.now().strftime('%Y-%m-%d')}.csv",
                            mime="text/csv")
-
     with sal_scat:
-        sum_saliency_score, pred_prob, expressed = [], [], []
+        sum_saliency_score, pred_prob, expressed, g_ids = [], [], [], []
         if  not np.isnan(p_h[0]):
             for idx in range(actual_scores_high.shape[0]):
                 sum_saliency_score.append(actual_scores_high[idx].sum())
                 pred_prob.append(p_h[idx])
                 expressed.append('High')
+                g_ids.append(g_h[idx])
         if not np.isnan(p_l[0]):
             for idx in range(actual_scores_low.shape[0]):
                 sum_saliency_score.append(actual_scores_low[idx].sum())
                 pred_prob.append(p_l[idx])
                 expressed.append('Low')
+                g_ids.append(g_l[idx])
         data_sal_scat = pd.DataFrame(data={'Predicted Expression Class':expressed,
-                                        'Sum Saliency Score':sum_saliency_score,
-                                        'Probability of high expression':pred_prob})
+                                           'Sum Saliency Score':sum_saliency_score,
+                                           'Probability of high expression':pred_prob,
+                                           'Gene ID':g_ids})
         chart_title = alt.TitleParams(
             "Saliency score vs Predicted probabilities",
             subtitle=["""Saliency scores are summed per gene and plotted against probabilities of high expression""",
@@ -133,7 +135,8 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
             y=alt.Y('Sum Saliency Score:Q'),
             color = alt.Color('Predicted Expression Class:N',
                             scale=alt.Scale(range=color_palette_low_high,
-                                            domain=['High', 'Low']))
+                                            domain=['High', 'Low'])),
+            tooltip=data_sal_scat.columns.tolist()
         )
         st.altair_chart(saliency_scat, use_container_width=True, theme=None)
 
@@ -243,7 +246,7 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
                                mime="text/csv")
 
     with sal_scat_nucl:
-        for scores_arr, probs in zip([actual_scores_high, actual_scores_low], [p_h, p_l]):
+        for scores_arr, probs, gs in zip([actual_scores_high, actual_scores_low], [p_h, p_l], [g_h, g_l]):
             n_genes = len(probs)
             if n_genes == scores_arr.shape[0]:
                 df = pd.DataFrame(data={
@@ -251,6 +254,7 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
                                                 ['G'] * n_genes, ['T'] * n_genes])),
                     'Probability of high expression': list(itertools.chain(*[probs for _ in range(4)])),
                     'Sum Saliency Score': np.concatenate([scores_arr.sum(axis=1)[:, i] for i in range(4)]),
+                    'Gene ID': list(itertools.chain(*[gs for _ in range(4)]))
                 })
 
                 chart_title = alt.TitleParams(
@@ -265,7 +269,8 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
                     y=alt.Y('Sum Saliency Score:Q'),
                     color=alt.Color('Base:N',
                                     scale=alt.Scale(range=['green', 'cornflowerblue', 'darkorange',  'red'],
-                                                    domain=['A', 'C', 'G', 'T']))
+                                                    domain=['A', 'C', 'G', 'T'])),
+                    tooltip=df.columns.tolist()
                 )
 
                 st.altair_chart(saliency_scat, use_container_width=True, theme=None)
