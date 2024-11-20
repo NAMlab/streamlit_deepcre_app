@@ -167,9 +167,7 @@ def make_predictions(model, x):
 
 def prepare_vcf(uploaded_file, gene_starts, gene_ends, gene_chroms):
     # @TODO pass the positions and chromosomes of the gene in the user's gene list,
-    # iterate through chunks of the file and only save those entries within the relevant
-    # genes (using iterator=True and then pd.concat). Also need to invalidate this content
-    # for the session storage on change of gene list then.
+    #  Also need to invalidate this content for the session storage on change of gene list then.
     iter_lines = pd.read_csv(uploaded_file, delimiter='\t', comment='#', usecols=[0, 1, 2, 3, 4],
                              names=['Chrom', 'Pos', 'ID', 'Ref', 'Alt'],
                              dtype={'Chrom': 'category', 'Pos': 'int', 'Ref': 'category', 'Alt': 'category'},
