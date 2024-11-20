@@ -6,8 +6,8 @@ import pandas as pd
 import altair as alt
 
 @st.cache_data
-def prepare_saliency_data_to_download(df):
-    return df.to_csv(index=False).encode('utf-8')
+def prepare_saliency_data_to_download(df, column_var):
+    return  df.pivot(index='Nucleotide Position', columns=column_var, values='Saliency Score').to_csv(index=True).encode('utf-8')
 
 def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_palette_low_high, g_h, g_l):
     if actual_scores_low.shape[0] == 0:
@@ -103,7 +103,7 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
         )
         saliency_chart = span_prom + span_5utr + span_3utr + span_term + saliency_chart + annotation_layer
         st.altair_chart(saliency_chart, use_container_width=True, theme=None)
-        st.download_button("Download data as csv", data=prepare_saliency_data_to_download(avg_saliency),
+        st.download_button("Download data as csv", data=prepare_saliency_data_to_download(avg_saliency, column_var='Predicted Expression Class'),
                            file_name=f"data_average_saliency_plots_{datetime.now().strftime('%Y-%m-%d')}.csv",
                            mime="text/csv")
     with sal_scat:
@@ -241,7 +241,7 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
 
             saliency_chart_base = span_prom + span_5utr + span_3utr + span_term + saliency_chart_base + annotation_layer + rule
             st.altair_chart(saliency_chart_base, use_container_width=True, theme=None)
-            st.download_button("Download data as csv", data=prepare_saliency_data_to_download(df),
+            st.download_button("Download data as csv", data=prepare_saliency_data_to_download(df, column_var='Base'),
                                file_name=f"data_saliency_plots_{df_name}_base_resolution_{datetime.now().strftime('%Y-%m-%d')}.csv",
                                mime="text/csv")
 
