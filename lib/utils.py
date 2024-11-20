@@ -170,14 +170,14 @@ def prepare_vcf(uploaded_file):
     # iterate through chunks of the file and only save those entries within the relevant
     # genes (using iterator=True and then pd.concat). Also need to invalidate this content
     # for the session storage on change of gene list then.
-    lines = pd.read_csv(uploaded_file, delimiter='\t', comment='#', usecols=[0, 1, 2, 3, 4], 
-                        names=['Chrom', 'Pos', 'ID', 'Ref', 'Alt'], 
-                        dtype={'Chrom': 'category', 'Pos': 'int', 'Ref': 'category', 'Alt': 'category'})
-    # @TODO we don't need this column I think, we only need to filter for SNPs
-    lines[5] = ['SNP' if len(x[3]) == len(x[4]) == 1 else 'INDEL' for x in lines.values]
-    lines = lines[lines[5] == 'SNP']
-    lines.columns = ['Chrom', 'Pos', 'ID', 'Ref', 'Alt', 'Annot']
-    lines['SNP'] = lines['SNP'].astype('category')
+    iter_lines = pd.read_csv(uploaded_file, delimiter='\t', comment='#', usecols=[0, 1, 2, 3, 4],
+                             names=['Chrom', 'Pos', 'ID', 'Ref', 'Alt'],
+                             dtype={'Chrom': 'category', 'Pos': 'int', 'Ref': 'category', 'Alt': 'category'},
+                             compression='gzip',
+                             chunksize=100000,
+                             header=None,
+                             iterator=True)
+    lines = pd.concat([chunk[(chunk['Ref'].str.len() == 1) & (chunk['Alt'].str.len() == 1)] for chunk in iter_lines])
     return lines
 
 

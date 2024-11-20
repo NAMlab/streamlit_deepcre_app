@@ -136,7 +136,7 @@ def main():
                                 st.session_state['cis_seq'] = seq
                             mut_cis_seq = st.session_state['cis_seq']
                             mut_markers = []
-                            for _, snp_pos, _, ref_allele, alt_allele, _, snp_region, snp_strand in selection.values:
+                            for _, snp_pos, _, ref_allele, alt_allele, snp_region, snp_strand in selection.values:
 
                                 if snp_strand == '+':
                                     if snp_region == 'Promoter':
