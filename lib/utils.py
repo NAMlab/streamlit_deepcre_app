@@ -166,17 +166,18 @@ def make_predictions(model, x):
     return preds
 
 def prepare_vcf(uploaded_file):
-    lines = []
-    with gzip.open(filename=uploaded_file, mode='rt') as fin:
-        for line in fin.readlines():
-            if not line.startswith('#'):
-                lines.append(line.split('\n')[0].split('\t')[:5])
-    lines = pd.DataFrame(lines)
+    # @TODO pass the positions and chromosomes of the gene in the user's gene list,
+    # iterate through chunks of the file and only save those entries within the relevant
+    # genes (using iterator=True and then pd.concat). Also need to invalidate this content
+    # for the session storage on change of gene list then.
+    lines = pd.read_csv(uploaded_file, delimiter='\t', comment='#', usecols=[0, 1, 2, 3, 4], 
+                        names=['Chrom', 'Pos', 'ID', 'Ref', 'Alt'], 
+                        dtype={'Chrom': 'category', 'Pos': 'int', 'Ref': 'category', 'Alt': 'category'})
+    # @TODO we don't need this column I think, we only need to filter for SNPs
     lines[5] = ['SNP' if len(x[3]) == len(x[4]) == 1 else 'INDEL' for x in lines.values]
     lines = lines[lines[5] == 'SNP']
     lines.columns = ['Chrom', 'Pos', 'ID', 'Ref', 'Alt', 'Annot']
-    lines['Pos'] = lines['Pos'].astype('int')
-    lines.reset_index(inplace=True, drop=True)
+    lines['SNP'] = lines['SNP'].astype('category')
     return lines
 
 
