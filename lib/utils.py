@@ -165,7 +165,7 @@ def make_predictions(model, x):
     preds = model.predict(x).ravel()
     return preds
 
-def prepare_vcf(uploaded_file):
+def prepare_vcf(uploaded_file, gene_starts, gene_ends, gene_chroms):
     # @TODO pass the positions and chromosomes of the gene in the user's gene list,
     # iterate through chunks of the file and only save those entries within the relevant
     # genes (using iterator=True and then pd.concat). Also need to invalidate this content
@@ -177,7 +177,11 @@ def prepare_vcf(uploaded_file):
                              chunksize=100000,
                              header=None,
                              iterator=True)
-    lines = pd.concat([chunk[(chunk['Ref'].str.len() == 1) & (chunk['Alt'].str.len() == 1)] for chunk in iter_lines])
+    lines = pd.concat([chunk[(chunk['Ref'].str.len() == 1) & (chunk['Alt'].str.len() == 1) &
+                             (((chunk['Pos'] > s-1000) & (chunk['Pos'] < s+500) & (chunk['Chrom'] == c)) |
+                              ((chunk['Pos'] > e-500) & (chunk['Pos'] < e+1000) & (chunk['Chrom'] == c)))]
+                       for chunk in iter_lines
+                       for s, e, c in zip(gene_starts, gene_ends, gene_chroms)])
     return lines
 
 

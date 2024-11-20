@@ -62,12 +62,12 @@ def getMutationScores(gene_id):
         st.session_state.mutation_scores = extract_scores(seqs=st.session_state.current_mutation_sequences, pred_probs=getMutationPredictions(), genes=[gene_id, f'{gene_id}: Mutated'], model=st.session_state.current_model, separate=False)
     return st.session_state.mutation_scores
 
-def getVcfContent(vcf_file):
+def getVcfContent(vcf_file, gene_start, gene_ends, gene_chroms):
     if vcf_file != st.session_state.current_vcf_file:
         st.session_state.current_vcf_file = vcf_file
         if vcf_file is not None:
             vcf_file = io.BytesIO(vcf_file.read())
-            st.session_state.vcf_content = prepare_vcf(uploaded_file=vcf_file)
+            st.session_state.vcf_content = prepare_vcf(uploaded_file=vcf_file, gene_starts=gene_start, gene_ends=gene_ends, gene_chroms=gene_chroms)
         else:
             st.session_state.vcf_content = None
     return st.session_state.vcf_content

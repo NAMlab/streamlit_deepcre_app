@@ -90,7 +90,7 @@ def main():
             else:
                 vcf_file = show_vcf_input()
                 progress_marker.update(label="Processing VCF file...")
-                vcf_df = getVcfContent(vcf_file)
+                vcf_df = getVcfContent(vcf_file, gene_starts, gene_ends, gene_chroms)
                 if vcf_file is not None:
                     vcf_col, gene_col, _ = st.columns([0.4, 0.5, 0.1], vertical_alignment='center')
                     with vcf_col:
