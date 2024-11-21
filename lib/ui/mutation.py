@@ -198,6 +198,7 @@ def show_mutation_results(gene_id, pred_probs, actual_scores, seq, utr_len, cent
 def show_vcf_input():
     file_upload, _ = st.columns([0.3, 0.7])
     with file_upload:
+        st.write("Upload a VCF file. You can speed up the upload and processing by pre-filtering the VCF file to only include the genes you're interested in.")
         vcf_file = st.file_uploader(label='VCF file', accept_multiple_files=False, type=['.gz'],
                                     help="""upload a VCF file. File should be in .gz format""")
     return vcf_file

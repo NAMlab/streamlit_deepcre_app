@@ -6,7 +6,7 @@ diagnostic_fields = ['current_genome', 'current_annotation', 'current_selected_g
                      'current_vcf_file', 'vcf_content']
 depend_on_mutation_sequences = ['mutation_predictions', 'mutation_scores']
 depend_on_model = depend_on_mutation_sequences + ['predictions', 'scores']
-depend_on_dataset =  depend_on_model + ['dataset']
+depend_on_dataset =  depend_on_model + ['dataset', 'vcf_content']
 
 def initStorage():
     for i in diagnostic_fields + depend_on_dataset:
@@ -63,7 +63,7 @@ def getMutationScores(gene_id):
     return st.session_state.mutation_scores
 
 def getVcfContent(vcf_file, gene_start, gene_ends, gene_chroms):
-    if vcf_file != st.session_state.current_vcf_file:
+    if vcf_file != st.session_state.current_vcf_file: # selected genes are validated above
         st.session_state.current_vcf_file = vcf_file
         if vcf_file is not None:
             vcf_file = io.BytesIO(vcf_file.read())
