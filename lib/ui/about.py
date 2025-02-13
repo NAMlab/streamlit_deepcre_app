@@ -1,5 +1,6 @@
 import streamlit as st
 import numpy as np
+import pandas as pd
 
 def show_about_tab(available_genomes):
     _, abt_col, _ = st.columns([0.15, 0.7, 0.15])
@@ -16,81 +17,254 @@ def show_about_tab(available_genomes):
         trained deep learning models to predict the expression of a gene and interpret model predictions. 
         Its user-friendly interface also offers users the opportunity to investigate the effect of mutations on
         gene expression in silico, either by uploading variant call format (VCF) files or by manual editing
-            of the cis-regulatory sequences.
+        of the cis-regulatory sequences.
         """)
 
         st.write("\n\n\n")
 
-        tutorial_header, _ = st.columns([0.2, 0.8])
+        tutorial_header, _ = st.columns([0.8, 0.2])
         with tutorial_header:
-            st.subheader('Tutorials')
-        st.write("""Here is a short tutorial on what you will find on our tool and how to use it. The tool has 4 main
-        sections: Home, Predictions, Saliency Maps and Mutation Analysis. At home you find information about the tool,
-        this short tutorial, our available genomes and contact information of our lab for questions.
+            st.subheader("""
+            Tutorial on the deepCRE toolkit:
+            """)
+        st.write("**Reproducing the deepCRE results sections of the gene promoter characterization**")
+        st.write("""
+        The aim of the Tutorial is to familiarize the users with its functions and potential applications.
+        Please visit our toolkits website: https://deepcre.ipk-gatersleben.de/
         """)
 
-        st.write('**Predictions**')
-        st.write("""In this section, a user can select a genome from our list of available genomes from the dropdown menu in the
-                 upload area. Then, they can either load a list of genes belonging to this genome for analysis or use
-                 the checkbox to get a list of 100 random genes selected for the analysis. :red[**If this is your first time using our tool
-                 you can use a set of 100 random genes to see what we offer**]. Finally the user can select a deepCRE model for the 
-                 downstream analysis. By default, the model currently on display is always used for downstream analysis.""")
-        st.image('images/image_2.png')
-        st.write("""If the user has a new genome, an older or a newer  version of the genomes we have listed, they also have the
-        option to upload a new genome. In this case, they also need to upload a new GTF/GFF3 and a list of genes for their analysis.
-        Once the new genome and GTF/GFF3 are loaded, you can also check the box to use a set of random genes to see what our
-        models predict.""")
-        st.image('images/image_1.png')
-        st.write("""Once the data is uploaded and the list of genes uploaded or the check box to use random genes is checked. The selected
-        model swiftly makes predictions on the cis-regulatory sequences of these genes and provides results to the users.""")
-        st.write("""- The users get a table of genes, their predictions and useful meta-information about these genes and their cis-regulatory
-        regions.""")
-        st.write("""- Users also get plots such as the predicted probabilities of high expression against GC content, the distribution of
-        genes on chromosomes across the genome. The plots can be downloaded any various formats and the tables can be downloaded
-        as csv files.""")
-        st.image('images/image_3.png')
+        st.write("""**Contents**""")
+        st.write("""
+        1. Providing a query for prediction and selecting a deepCRE model\n
+        2. Accessing the deepCRE Prediction Results\n
+        3. Accessing the deepCRE models Explanation Results\n
+        4. Mutating gene sequence and measuring effects""")
 
-        st.write('**Saliency Maps**')
-        st.write("""Deep learning models have been called black boxes because of the difficulty in interpretation brought about
-                by their complexity. Here, we provide users model interpretation using ShAP. This tools provide nucleotide resolution
-                importance scores for every sequence. This is average across all genes to give users an overview of the regions our models
-                focus on during their predictions.""")
-        st.write("""1. Plot showing the saliency maps averaged across all genes within the provided gene set.""")
-        st.write("""2. Download button to retrieve the source data used to generate saliency plots.""")
-        st.write("""3. Opacity button to control the opacity of line plots. Users can use this to improve plot quality.""")
-        st.image('images/image_4.png')
+        st.write("**1. Providing a query and selecting a deepCRE model**")
+        st.write("""
+        **1.1** The deepCRE toolkit requires a list of gene ids from one available reference organism. 
+        The available reference organisms and models are shown on the Home Tab under Available genomes or in 
+        Supplementary table 1.
+        """)
+        ## Image 1
+        st.image('images/Slide1.jpg', use_column_width=True)
 
-        st.write('**Mutation Analysis: :red[Manual]**')
-        st.write("""We also provide users two ways to perform in-silico mutagenesis and obtain predictions. This should give users
-        insights into potentially positive and negative variants.""")
-        st.write('1. User can choose to either manually mutate selected regions of the sequence or use SNPs from an uploaded VCF')
-        st.write('2. User selects a gene of interest for the mutation analysis')
-        st.write('3. User selects the region to target during mutation analysis')
-        st.write("""4. Within the selected region, the user narrows down a subsequence to mutate by selecting a range. After selecting
-        a range, please click :red[**submit**] so that the sequence within these range is extracted and displayed to the right.""")
-        st.write("""5. The sequence belonging to the selected range is extracted and presented to the user to perform mutations. After mutating
-        the sequence, confirm your mutations by clicking the :red[**mutate**] button. Only after confirmation will your mutations be considered.""")
-        st.write("6. This shows the new predicted probability of high expression for the original sequence compared to the mutated sequence.")
-        st.write("7. This shows the new computed saliency maps for the original sequence compared to the mutated sequence.")
-        st.write("8. To clear mutations introduce or start over the analysis, please use the :red[**reset**] button.")
-        st.image('images/image_5.png')
+        st.write("""
+        Click on “Browse files” and upload Supplementary-file-1 containing a list of matching gene ids 
+        for A. thaliana TAIR10. The gene ids in the file do not require version numbers and are provided in rows.
+        """)
+        st.write("""
+        AT1G67090\n
+        AT2G22200\n
+        AT2G37620\n
+        AT2G46800\n
+        AT3G02150\n
+        """)
+        st.write("Alternatively, the user can always select 100 random genes from a selected genome.")
+        st.write("""
+        Other reference genomes and annotations for non-reference organisms can be uploaded by selecting a “New” species. 
+        The user needs to upload a matching genome, annotation files and a list of gene ids. For the upload please use
+        gzip compressed files (.gz). 
+        """)
 
-        st.write('**Mutation Analysis: :red[VCF]**')
-        st.write("""For users that wish to investigate natural occurring variants, the VCF analysis will be helpful. Once you select VCF, you will
-        be prompted with an upload area. This allows the upload of VCF files only in :red[**compressed (.gz)**] format. We advice users to first filter
-        their VCFs to keep only the variants they are interested in. Currently we only support the use of :red[**single nucleotide polymorphisms (SNPs)**].""")
-        st.image('images/image_6.png')
-        st.write("1. This table displays the first 50 SNPs in the uploaded VCF file.")
-        st.write("""2. This table shows you the SNPs overlapping the selected gene of interest. These SNPs have been annotate into promoter and terminator
-        SNPs. Promoter SNPs fall within the promoter and 5'UTR while terminator SNPs fall within the terminator and 3'UTR. Users cal subset these SNPs by
-        selecting one or a few to use for downstream analysis.""")
-        st.write("""3. After selecting one or more SNPs, these will be displayed on this table.""")
-        st.write("""4. Just like in the manual mutation analysis, users must confirm their mutations before the analysis will be done. Please click the
-        :red[**Mutate Sequence**] button to confirm your selections.""")
-        st.write("6. Plots for the effects of selected mutations on the predicted probabilities of high expression and the newly computed saliency maps.")
-        st.image('images/image_7.png')
-        st.write("It is also possible to use all the SNPs overlapping the gene of interest.")
-        st.image('images/image_8.png')
+        st.write("""
+        **1.2**  The deepCRE toolkit provides pre-trained deep learning models described in Peleke et al., 2024. 
+        The user can select these independent of the selected Species references.
+        """)
+        st.write("""
+        Select the Arabidopsis_thaliana_leaf and later the Arabidopsis_thaliana_root models to reproduce the results.
+        """)
+        st.write("""
+        The selected queries will be processed accordingly and predictions of gene expression levels will be modelled 
+        automatically after the selections are complete. This may take a few seconds. 
+        """)
+
+        st.write("**2. Accessing the deepCRE Prediction Results**")
+        st.write("""
+        After the user has provided queries for analyses, the prediction results can be accessed in the tab "Predictions".
+        The toolkit provides tabular and graphical output for the query genes, mainly highlighting genes that are 
+        predicted to have low and high rates of transcription (pink and purple).
+        """)
+        ## Image 2
+        st.image('images/Slide2.jpg', use_column_width=True)
+
+
+        st.write("""All tables and figures can be downloaded.""")
+        ## Table
+        st.dataframe(pd.read_csv('data/Tutorial_table1_Atleaf.csv', nrows=5))
+
+        st.write("""
+        The toolkit should have produced figure 2a and 2c. Options to further process the output should become visible
+        by mouse-over. Please save outputs by clicking on the options.
+        """)
+        ## Image 3
+        st.image('images/Slide3.jpg', use_column_width=True)
+
+        st.write("""
+        During the Predictions the chosen deepCRE model can be changed, without the query being lost. Please change
+        the deepCRE model from Arabidopsis_thaliana_leaf to the Arabidopsis_thaliana_root.
+        """)
+        ## Image 4: table
+        st.dataframe(pd.read_csv('data/Tutorial_table2_Atroot.csv', nrows=5))
+        st.write("""
+        The toolkit should have produced figure 2b and 2d. 
+        The deepCRE toolkit provides more figures than shown in the results. The users have access to multiple graphical
+        output showing the analyses results:\n
+        Distribution of genes across the genome\n
+        Distribution of Low and High predictions across chromosomes,\n
+        Distribution of Predicted probabilities\n
+        Gene size vs Predicted probabilities\n
+        GC content vs Predicted probabilities\n 
+
+        """)
+
+        st.write('**3. Accessing the deepCRE Explanation Results**')
+        st.write("""
+        Model interpretations are done using the DeepSHAP/DeepExplainer implementation of (Lundberg & Lee, 2017)
+        which computes nucleotide resolution importance scores, highlighting the most salient features of every cis-regulatory
+        sequence. These scores are averaged across all genes within the provided list of genes, providing users with an 
+        averaged saliency map.
+        """)
+        st.write("""
+        The users can access saliency maps by clicking on the Tab “Saliency Maps”. This is how the user can produce figure
+        2e and 2f, switching between the At(leaf) and At(root) models.
+        """)
+        ## Image 5
+        st.image('images/Slide4.jpg', use_column_width=True)
+
+        st.write("""
+
+        The deepCRE toolkit provides more figures than shown in the results. The users have access to graphical output:\n
+        Averaged saliency map\n
+        Sum saliency score vs Predicted probabilities\n
+        Base-type average saliency map for highly expressed genes\n
+        Sum saliency score for highly expressed genes\n
+        Base-type average saliency map for lowly expressed genes\n
+        Sum saliency score for lowly expressed gene\n
+        """)
+
+        st.write("""**4. Mutating gene sequence and measuring effects**""")
+        st.write("""
+        The "Mutation Analysis" tab provides users the opportunity to specifically edit input sequences and measure changes in predicted probabilities 
+        using manual or vcf guided mutations. The user can switch between the two modes of analysis. In both modes 
+        users can select a gene of interest. 
+        """)
+        st.write("**4.1**  Promoter Swaps")
+        st.write("""
+        In the Manual editing mode the user can display and edit sequences within the webtool. This allows the user to 
+        manually change, e.g. copy-paste sequences from different sources and compare the effects to the query sequence 
+        measured by change in predicted probability and saliency maps. 
+        """)
+        ## Image 6
+        st.image('images/Slide5.jpg', use_column_width=True)
+        st.write("""
+        To reproduce the results of the gene promoter characterization please select the Manual editing mode, gene of 
+        interest AT1G67090, and the 5’UTR (gTUR) region as region of interest. 
+        """)
+        ## Image 7
+        st.image('images/Slide6.jpg', use_column_width=True)
+        st.write("""
+        The coordinates can be changed that will be on display within the Text editing window after clicking on Submit. 
+        After the sequence has been edited, changes are confirmed by clicking onto Mutate. \n
+        The coordinates should be set to  1001-1500 after selecting the 5’UTR (gTUR) region. Please open the 
+        Supplementary file 2 and copy the sequence of the fasta:
+        """)
+        st.write("""
+        \>gTUR_Osativa_OsACT1_KP100426-PIG2_5UTR500BP\n
+        GCCCTCCCTCCGCTTCCAAAGAAACGCCCCCCATCGCCACTATATACATACCCCCCCTCTCCTCCCATCCCCCAACCCTACCACCACCACCACCACCACCTCCACCTCCTCC
+        CCCCTCGCTGCCGGACGACGAGCTCCTCCCCCCTCCCCCTCCGCCGCCGCCGCGCCGGTAACCACCCCGCCCCTCTCCTCTTTCTTTCTCCGTTTTTTTTTTCCGTCTCGGT
+        CTCGATCTTTGGCCTTGGTAGTTTGGGTGGGCGAGAGGCGGCTTCGTGCGCGCCCAGATCGGTGCGCGGGAGGGGCGGGATCTCGCGGCTGGGGCTCTCGCCGGCGTGGATC
+        CGGCCCGGATCTCGCGGGGAATGGGGCTCTCGGATGTAGATCTGCGATCCGCCGTTGTTGGGGGAGATGATGGGGGGTTTAAAATTTCCGCCATGCTAAACAAGATCAGGAA
+        GAGGGGAAAAGGGCACTATGGTTTATATTTTTATATATTTCTGCTGCTTCGT
+        """)
+
+        st.write("""
+        Paste this sequence into the target window for text editing of the deepCRE toolkit Mutation mode. 
+        After clicking onto Mutate new probabilities and saliency maps should be generated. The exchange of the gTUR 
+        should result in the generation of figure 3g and 3h.
+        """)
+        ## Image 8
+        st.image('images/Slide7.jpg', use_column_width=True)
+
+        st.write("""
+        The change in predicted probabilities is displayed below the plots. The exact predicted probability for the 
+        sequence before (grey) and after (cyan) editing can be read out by mouse-over the barplot. To reproduce the 
+        results shown in the deepCRE toolkit manuscript, sequences in the supplementary file 2 were trimmed to sizes that
+        can be copied to the webtool. To enable cross evaluation, the different models can be selected without the edited 
+        sequence being changed. This accounts also for changes in the other selectable regions of interest. 
+        Please select the gUR (Promoter) region for manual editing after the gTUR has been mutated. Please open 
+        Supplementary file 2 and copy the following sequence:
+        """)
+        st.write("""
+        \>gUR_Osativa_OsACT1_KP100426-PIG2_Promoter1000BP\n
+        GTAATTCCATAAAATTTTTAATGTCCATAATTATAATAAAGAACAATGGATATATATACATATATAATAATAACTTATAAAAAAATATAATATTTTTGGAAAAAAAAAGAAT
+        AATAATAAAACTTAAATAAAAAAAACCTATATTAAACTTTGTTTTAAAACCTTGCAAAAGATATCATGTTTTACTTATGAGTCATCAAATTGAAGTACAAGTAGGTTATATA
+        AGCTTCTAGCATACTCGAGGTCATTCATATGCTTGAGAAGAGAGTCGGGATAGTCCAAAATAAAACAAAGGTAAGATTACCTGGTCAAAAGTGAAAACATCAGTTAAAAGGT
+        GGTATAAAGTAAAATATCGGTAATAAAAGGTGGCCCAAAGTGAAATTTACTCTTTTCTACTATTATAAAAATTGAGGATGTTTTTGTCGGTACTTTGATACGTCATTTTTGT
+        ATGAATTGGTTTTTAAGTTTATTCGCTTTTGGAAATGCATATCTGTATTTGAGTCGGGTTTTAAGTTCGTTTGCTTTTGTAAATACAGAGGGATTTGTATAAGAAATATCTT
+        TAAAAAAACCCATATGCTAATTTGACATAATTTTTGAGAAAAATATATATTCAGGCGAATTCTCACAATGAACAATAATAAGATTAAAATAGCTTTCCCCCGTTGCAGCGCA
+        TGGGTATTTTTTCTAGTAAAAATAAAAGATAAACTTAGACTCAAAACATTTACAAAAACAACCCCTAAAGTTCCTAAAGCCCAAAGTGCTATCCACGATCCATAGCAAGCCC
+        AGCCCAACCCAACCCAACCCAACCCACCCCAGTCCAGCCAACTGGACAATAGTCTCCACACCCCCCCACTATCACCGTGAGTTGTCCGCACGCACCGCACGTCTCGCAGCCA
+        AAAAAAAAAAAAGAAAGAAAAAAAAGAAAAAGAAAAAACAGCAGGTGGGTCCGGGTCGTGGGGGCCGGAAACGCGAGGAGGATCGCGAGCCAGCGACGAGGCCG
+        """)
+
+        st.write("""
+        Paste this sequence into the target window for text editing of the deepCRE toolkit Mutation mode. 
+        After clicking onto Mutate new probabilities and saliency maps should be generated.
+        """)
+        ## Image 8
+        st.image('images/Slide8.jpg', use_column_width=True)
+
+        st.write("""
+        The sequence of display now consists of the OsACT1 gUT and gTUR regions combined with the downstream region of 
+        gene AT1G67090.\n
+        All changes to a sequence can be resetted by clicking on Reset.\n 
+        More exemplary material for in silico promoter swap experiments are available in Supplementary file 2.\n 
+        """)
+
+        st.write("""
+        **4.2**  Variant Effect Prediction\n
+        In the VCF editing mode the user can upload a variant call file (VCF) as GNUzipped (.gz) within the webtool and 
+        evaluate changes in the predicted probability. This allows the user to analyze variant effects over e.g. population 
+        structure. We provide an exemplary vcf file as Supplementary file 4 that contains all variants found in the ecotypes
+        analyzed by Luo and colleagues. Please switch to the VCF mode within the toolkit and follow the instructions.\n 
+        Please select a new gene of interest for this study: AT1G53910 (RAP2.12). 
+
+        """)
+        ## Image 8
+        st.image('images/Slide9.jpg', use_column_width=True)
+        st.write("""
+        The toolkit displays the first 50 variants of the uploaded vcf file and all variants found within the selected
+        gene regions. From the latter, distinct variants can be tagged and will be displayed in a thief table containing
+        your variant selection. Please select all variants available for AT1G53910 by ticking the box above the selection
+        column. After loading, please click on Mutate Sequence to perform predictions and explanation for gene variants. 
+        """)
+
+        st.image('images/Slide10.png', use_column_width=True)
+
+        st.write("""
+        This will generate a plot as output showing the change in predicted probability and the effect on single nucleotide
+        importances. The dotted grey lines indicate the position of selected variants within the gene flanking regions. 
+        The sequence with the lowest predicted probability belongs to the A. thaliana ecotype I-Cat0. These are the variants
+        found for this ecotype compared to A. thaliana col-0. The list of variants is provided as supplementary table 3.
+        Please select the following SNPs to generate a sequence similar to the I-Cat0 haplotype. 
+        """)
+        st.dataframe(pd.read_csv('data/Tutorial_table3_icat.csv'))
+        st.write("The selection of the 17 SNPs of I-Cat0 results in a decrease of predicted probabilities of 12%")
+        st.image('images/Slide11.jpg', use_column_width=True)
+        st.write("""
+        The change in predicted probabilities can also be explained with just 9 SNPs of I-Cat0 resulting in a decrease 
+        of predicted probabilities of 14%. Please remove the tick from all rows that are tagged as “no” contributors in 
+        the table above and click onto mutate.
+        """)
+        st.image('images/Slide12.jpg', use_column_width=True)
+        st.write("""
+        The resulting plots should be similar to Figure 4b,c and d.
+        """)
+        st.write("**References**")
+        st.write("""Peleke, Fritz Forbang, Simon Maria Zumkeller, Mehmet Gültas, Armin Schmitt, and Jędrzej Szymański. 2024. 
+        “Deep Learning the Cis-Regulatory Code for Gene Expression in Selected Model Plants.” Nature Communications 15 (1): 3488.""")
+        st.write("""Lundberg, Scott, and Su-In Lee. 2017. “A Unified Approach to Interpreting Model Predictions.” arXiv [cs.AI]. arXiv. http://arxiv.org/abs/1705.07874.""")
         avail_gen, _ = st.columns([0.9, 0.1])
         prev_page, _, next_page = st.columns([1, 10, 1])
         n_rows_to_show = 5
