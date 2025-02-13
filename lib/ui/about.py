@@ -7,7 +7,7 @@ def show_about_tab(available_genomes):
     with abt_col:
         about_header, _ = st.columns([0.2, 0.8])
         with about_header:
-            st.subheader('About')
+            st.subheader('Abstract')
         st.write("""
         The presence of short cis-regulatory elements (CREs) significantly defines the relationship between the 
         expression of a gene and its non-coding proximal regulatory sequences. Deep learning models have been 

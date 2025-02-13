@@ -47,8 +47,8 @@ def main():
 
     progress_marker = st.status('Processing data...')
     ### Three main Tabs
-    about_tab, preds_tab, interpret_tab, mutations_tab = st.tabs(['Home', 'Predictions', 'Saliency Maps', 'Mutation Analysis'])
-    with about_tab:
+    home_tab, preds_tab, interpret_tab, mutations_tab, about_tab = st.tabs(['Home', 'Predictions', 'Explanation', 'Mutation', 'About'])
+    with home_tab:
         show_about_tab(available_genomes)
 
 
