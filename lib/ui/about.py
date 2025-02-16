@@ -30,7 +30,7 @@ def show_about_tab(available_genomes):
         st.write("**Reproducing the deepCRE results sections of the gene promoter characterization**")
         st.write("""
         The aim of the Tutorial is to familiarize the users with its functions and potential applications.
-        Please visit our toolkits website: https://deepcre.ipk-gatersleben.de/
+        The code for this toolkit: https://github.com/NAMlab/streamlit_deepcre_app" 
         """)
 
         st.write("""**Contents**""")
@@ -261,10 +261,7 @@ def show_about_tab(available_genomes):
         st.write("""
         The resulting plots should be similar to Figure 4b,c and d.
         """)
-        st.write("**References**")
-        st.write("""Peleke, Fritz Forbang, Simon Maria Zumkeller, Mehmet Gültas, Armin Schmitt, and Jędrzej Szymański. 2024. 
-        “Deep Learning the Cis-Regulatory Code for Gene Expression in Selected Model Plants.” Nature Communications 15 (1): 3488.""")
-        st.write("""Lundberg, Scott, and Su-In Lee. 2017. “A Unified Approach to Interpreting Model Predictions.” arXiv [cs.AI]. arXiv. http://arxiv.org/abs/1705.07874.""")
+
         avail_gen, _ = st.columns([0.9, 0.1])
         prev_page, _, next_page = st.columns([1, 10, 1])
         n_rows_to_show = 5
@@ -299,18 +296,3 @@ def show_about_tab(available_genomes):
         sub_df = sub_df[['display_name', 'description']]
         sub_df.columns = ['Genome', 'Description']
         st.dataframe(sub_df, hide_index=True, use_container_width=True)
-
-    # Logo of lab and link
-    _, lab_logo, lab_name = st.columns([0.3, 0.4, 0.3], vertical_alignment='bottom', gap='small')
-
-    with lab_logo:
-        st.image('images/logos.png', use_column_width=True)
-        st.subheader('CONTACT US', divider='grey')
-        st.write("Forschungszentrum Jülich GmbH D-52425 Jülich, Germany")
-        st.markdown(
-            f"Lab: <a style='text-decoration:none; text-align: center; color:#FF4BAB;' href=https://www.szymanskilab.com/>SZYMANSKI LAB</a>",
-            unsafe_allow_html=True,
-        )
-        st.write(f"email: :red[j.szymanski@fz-juelich.de]")
-
-

@@ -8,6 +8,7 @@ from lib.ui.about import show_about_tab
 from lib.ui.sidebar import show_sidebar
 from lib.ui.predictions import show_predictions_tab
 from lib.ui.saliency import show_saliency_tab
+from lib.ui.license_ref import show_license_ref
 from lib.ui.mutation import choose_analysis_type, show_manual_mutation, show_mutation_results, show_vcf_input
 from lib.storage import *
 tf.compat.v1.disable_eager_execution()
@@ -50,7 +51,8 @@ def main():
     home_tab, preds_tab, interpret_tab, mutations_tab, about_tab = st.tabs(['Home', 'Predictions', 'Explanation', 'Mutation', 'About'])
     with home_tab:
         show_about_tab(available_genomes)
-
+    with about_tab:
+        show_license_ref()
 
     x = None
     if genome is not None and annotation is not None:

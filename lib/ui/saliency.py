@@ -13,9 +13,11 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
     if actual_scores_low.shape[0] == 0:
         actual_scores_low = np.zeros_like(actual_scores_high)
         p_l = [np.nan]
+        g_l = [np.nan]
     if actual_scores_high.shape[0] == 0:
         actual_scores_high = np.zeros_like(actual_scores_low)
         p_h = [np.nan]
+        g_h = [np.nan]
 
     sal_line, sal_scat = st.columns([0.6, 0.4], vertical_alignment='top', gap='medium')
     with sal_line:
@@ -140,7 +142,7 @@ def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_pal
         )
         st.altair_chart(saliency_scat, use_container_width=True, theme=None)
 
-    sal_line_nucl, sal_scat_nucl = st.columns([0.6, 0.4], vertical_alignment='top', gap='medium')
+    sal_line_nucl, sal_scat_nucl = st.columns([0.6, 0.4], vertical_alignment='center', gap='medium')
     with sal_line_nucl:
         df_low = pd.DataFrame(data={
             'Nucleotide Position': np.concatenate([np.arange(1, 3021) for _ in range(4)], axis=0),
