@@ -1,4 +1,12 @@
-FROM python:3.9-buster
+FROM python:3.9-bookworm
+
+# Install curl and git-lfs
+RUN apt-get update && apt-get install -y curl git \
+    && curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash \
+    && apt-get install -y git-lfs \
+    && git lfs install \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install micromamba for dependency management
 SHELL ["/bin/bash", "-c"]
