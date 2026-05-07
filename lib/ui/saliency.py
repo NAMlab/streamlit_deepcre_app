@@ -1,278 +1,271 @@
-import numpy as np
-import streamlit as st
-from datetime import datetime
 import itertools
-import pandas as pd
+from datetime import datetime
+
 import altair as alt
+import numpy as np
+import pandas as pd
+import streamlit as st
+
+# ── Styling helpers ───────────────────────────────────────────────────────────
+
+def _section(label: str) -> None:
+    st.markdown(
+        f"""<div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.07em;color:#4F1787;margin:1.4rem 0 0.6rem 0;
+                        padding-bottom:4px;border-bottom:1px solid #ede9f5;">
+                {label}
+            </div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def _chart_title(title: str, subtitle: str) -> alt.TitleParams:
+    return alt.TitleParams(
+        title,
+        subtitle=[subtitle, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"],
+        subtitleColor="#9ca3af",
+        fontSize=13,
+        subtitleFontSize=10,
+    )
+
+
+# ── Genomic region span helpers ───────────────────────────────────────────────
+
+_REGION_SPANS = [
+    (0,    999,  "grey",          "gUR (gene Upstream Region)"),
+    (1000, 1499, "red",           "gTUR (gene 5′ UTR Region)"),
+    (1519, 2019, "cornflowerblue","gTDR (gene 3′ UTR Region)"),
+    (2020, 3020, "grey",          "gDR (gene Downstream Region)"),
+]
+
+def _region_layers() -> list[alt.Chart]:
+    layers = []
+    for x1, x2, color, tip in _REGION_SPANS:
+        layers.append(
+            alt.Chart(pd.DataFrame({"x1": [x1], "x2": [x2]}))
+            .mark_rect(opacity=0.1)
+            .encode(
+                x=alt.X("x1", scale=alt.Scale(domain=[1, 3021]), title="Nucleotide Position"),
+                x2="x2",
+                color=alt.value(color),
+                tooltip=alt.value(tip),
+            )
+        )
+    return layers
+
+
+def _annotation_layer(text_y: float) -> alt.Chart:
+    df = pd.DataFrame([
+        (1000, text_y, "TSS", "Transcription Start Site"),
+        (2020, text_y, "TTS", "Transcription Termination Site"),
+    ], columns=["Nucleotide Position", "Saliency Score", "marker", "description"])
+    return (
+        alt.Chart(df)
+        .mark_text(size=14, dx=-10, dy=0, align="center", fontWeight="bold")
+        .encode(
+            x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
+            y=alt.Y("Saliency Score:Q", title="Saliency Score"),
+            text="marker",
+            tooltip="description",
+        )
+    )
+
+
+def _opacity_param(name: str = "opacity"):
+    return alt.param(
+        value=1,
+        bind=alt.binding_range(min=0.2, max=1, step=0.05, name=f"{name}:"),
+    )
+
+
+# ── CSV export ────────────────────────────────────────────────────────────────
 
 @st.cache_data
-def prepare_saliency_data_to_download(df, column_var):
-    return  df.pivot(index='Nucleotide Position', columns=column_var, values='Saliency Score').to_csv(index=True).encode('utf-8')
+def _pivot_csv(df: pd.DataFrame, column_var: str) -> bytes:
+    return (
+        df.pivot(index="Nucleotide Position", columns=column_var, values="Saliency Score")
+        .to_csv(index=True)
+        .encode("utf-8")
+    )
 
-def show_saliency_tab(actual_scores_high, actual_scores_low, p_h, p_l, color_palette_low_high, g_h, g_l):
+
+# ── Chart builders ────────────────────────────────────────────────────────────
+
+def _build_line_chart(df: pd.DataFrame, title: str, subtitle: str,
+                      color_field: str, color_scale: alt.Scale,
+                      opacity_param, y_domain=None) -> alt.Chart:
+    y_enc = (
+        alt.Y("Saliency Score:Q", title="Saliency Score", scale=alt.Scale(domain=y_domain))
+        if y_domain else alt.Y("Saliency Score:Q", title="Saliency Score")
+    )
+    return (
+        alt.Chart(df, title=_chart_title(title, subtitle))
+        .mark_line(opacity=opacity_param)
+        .encode(
+            x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021]),
+                    axis=alt.Axis(tickCount=10)),
+            y=y_enc,
+            color=alt.Color(f"{color_field}:N", scale=color_scale),
+        )
+        .add_params(opacity_param)
+    )
+
+
+def _build_scatter(df: pd.DataFrame, title: str, subtitle: str,
+                   color_field: str, color_scale: alt.Scale) -> alt.Chart:
+    return (
+        alt.Chart(df, title=_chart_title(title, subtitle))
+        .mark_circle(size=30, opacity=0.7)
+        .encode(
+            x=alt.X("Probability of high expression:Q", title="Probability of high expression", scale=alt.Scale(domain=[0, 1])),
+            y=alt.Y("Sum Saliency Score:Q", title="Sum Saliency Score"),
+            color=alt.Color(f"{color_field}:N", scale=color_scale),
+            tooltip=df.columns.tolist(),
+        )
+    )
+
+
+def _composite(layers: list, line_chart: alt.Chart, text_y: float) -> alt.LayerChart:
+    rule = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule(strokeDash=[3, 3], color="black").encode(y=alt.Y("y:Q", title="Saliency Score"))
+    return alt.layer(*layers, line_chart, _annotation_layer(text_y), rule)
+
+
+# ── Public entry point ────────────────────────────────────────────────────────
+
+def show_saliency_tab(
+    actual_scores_high, actual_scores_low,
+    p_h, p_l, color_palette_low_high, g_h, g_l,
+):
+    # Guard: fill missing class with zeros
     if actual_scores_low.shape[0] == 0:
         actual_scores_low = np.zeros_like(actual_scores_high)
-        p_l = [np.nan]
-        g_l = [np.nan]
+        p_l, g_l = [np.nan], [np.nan]
     if actual_scores_high.shape[0] == 0:
         actual_scores_high = np.zeros_like(actual_scores_low)
-        p_h = [np.nan]
-        g_h = [np.nan]
+        p_h, g_h = [np.nan], [np.nan]
 
-    sal_line, sal_scat = st.columns([0.6, 0.4], vertical_alignment='top', gap='medium')
-    with sal_line:
-        avg_saliency = pd.DataFrame(data={
-            'Nucleotide Position': np.concatenate([np.arange(1, 3021), np.arange(1, 3021)], axis=0),
-            'Saliency Score': np.concatenate([actual_scores_high.mean(axis=(0, 2)),
-                                        actual_scores_low.mean(axis=(0, 2))], axis=0),
-            'Predicted Expression Class': list(itertools.chain(*[['High'] * 3020, ['Low'] * 3020])),
+    expr_scale = alt.Scale(range=color_palette_low_high, domain=["High", "Low"])
+    base_scale = alt.Scale(range=["green", "cornflowerblue", "darkorange", "red"], domain=["A", "C", "G", "T"])
+    positions  = np.arange(1, 3021)
+
+    # ── 1. Average saliency map ───────────────────────────────────────────────
+    _section("📈 Average Saliency Map")
+    avg_line_col, avg_scat_col = st.columns([0.6, 0.4], vertical_alignment="top", gap="medium")
+
+    avg_df = pd.DataFrame({
+        "Nucleotide Position": np.tile(positions, 2),
+        "Saliency Score": np.concatenate([
+            actual_scores_high.mean(axis=(0, 2)),
+            actual_scores_low.mean(axis=(0, 2)),
+        ]),
+        "Expression": ["High"] * 3020 + ["Low"] * 3020,
+    })
+
+    text_y = avg_df["Saliency Score"].max() + avg_df["Saliency Score"].mean()
+    op     = _opacity_param("avg_opacity")
+
+    with avg_line_col:
+        line = _build_line_chart(
+            avg_df,
+            title="Average Saliency Map",
+            subtitle="Saliency scores averaged across all genes predicted as high / low expressed",
+            color_field="Expression",
+            color_scale=expr_scale,
+            opacity_param=op,
+        )
+        chart = _composite(_region_layers(), line, text_y)
+        st.altair_chart(chart, use_container_width=True, theme=None)
+        st.download_button(
+            "⬇️ Download average saliency CSV",
+            data=_pivot_csv(avg_df, "Expression"),
+            file_name=f"avg_saliency_{datetime.now().strftime('%Y-%m-%d')}.csv",
+            mime="text/csv",
+        )
+
+    with avg_scat_col:
+        rows = {"Expression": [], "Sum Saliency Score": [], "P(high expr.)": [], "Gene ID": []}
+        for scores, probs, gids, label in [
+            (actual_scores_high, p_h, g_h, "High"),
+            (actual_scores_low,  p_l, g_l, "Low"),
+        ]:
+            if not np.isnan(probs[0]):
+                for i in range(scores.shape[0]):
+                    rows["Expression"].append(label)
+                    rows["Sum Saliency Score"].append(scores[i].sum())
+                    rows["P(high expr.)"].append(probs[i])
+                    rows["Gene ID"].append(gids[i])
+
+        scat_df = pd.DataFrame(rows)
+        scat_df = scat_df.rename(columns={"P(high expr.)": "Probability of high expression"})
+
+        scatter = _build_scatter(
+            scat_df,
+            title="Saliency Score vs. Predicted Probability",
+            subtitle="Sum saliency score per gene plotted against probability of high expression",
+            color_field="Expression",
+            color_scale=expr_scale,
+        )
+        st.altair_chart(scatter, use_container_width=True, theme=None)
+
+    # ── 2. Per-nucleotide base-type saliency maps ─────────────────────────────
+    _section("🔬 Base-Type Saliency Maps")
+
+    df_by_class = {}
+    for label, scores in [("High", actual_scores_high), ("Low", actual_scores_low)]:
+        df_by_class[label] = pd.DataFrame({
+            "Nucleotide Position": np.tile(positions, 4),
+            "Saliency Score": np.concatenate([scores.mean(axis=0)[:, i] for i in range(4)]),
+            "Base": list(itertools.chain(*[[b] * 3020 for b in ["A", "C", "G", "T"]])),
         })
-        chart_title = alt.TitleParams(
-            "Average Saliency map",
-            subtitle=[
-                """Saliency scores are averaged across all sequences predicted as either high/low expressed""",
-                f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
-            subtitleColor='grey'
-        )
-        # adding slider for opacity
-        op_var_avg = alt.param(value=1, bind=alt.binding_range(min=0.2, max=1, step=0.05, name='opacity:'))
-        saliency_chart = alt.Chart(avg_saliency, title=chart_title).mark_line(opacity=op_var_avg).encode(
-            x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
-                    axis=alt.Axis(tickCount=10)),
-            y='Saliency Score:Q',
-            color=alt.Color('Predicted Expression Class:N',
-                                scale=alt.Scale(range=color_palette_low_high,
-                                                domain=['High', 'Low']))
-        ).add_params(op_var_avg)
-        max_saliency = avg_saliency['Saliency Score'].max()
-        mean_pos_saliency = avg_saliency[avg_saliency['Predicted Expression Class']=='High']['Saliency Score'].mean()
-        text_y = max_saliency+mean_pos_saliency
 
-        annotations = [
-            (1000, text_y, "TSS", "Transcription Start Site"),
-            (2020, text_y, "TTS", "Transcription Termination site"),
-        ]
-        annotations_df = pd.DataFrame(
-            annotations, columns=["Nucleotide Position", "Saliency Score", "marker", "description"]
-        )
-        annotation_layer = (
-            alt.Chart(annotations_df)
-            .mark_text(size=15, dx=-10, dy=0, align="center")
-            .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
-                    y=alt.Y("Saliency Score:Q"), text="marker",
-                    tooltip="description")
-        )
-        span_prom = alt.Chart(pd.DataFrame({'x1': [0], 'x2': [999]})).mark_rect(
-            opacity=0.1,
-        ).encode(
-            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                    title='Nucleotide Position'),
-            x2='x2',
-            color=alt.value('grey'),
-            tooltip=alt.value("promoter")
-        )
+    y_min = min(df["Saliency Score"].min() for df in df_by_class.values())
+    y_max = max(df["Saliency Score"].max() for df in df_by_class.values())
 
-        span_5utr = alt.Chart(
-            pd.DataFrame({'x1': [1000], 'x2': [1499]})).mark_rect(
-            opacity=0.1,
-        ).encode(
-            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                    title='Nucleotide Position'),
-            x2='x2',  # alt.datum(2019),
-            color=alt.value('red'),
-            tooltip=alt.value("5' UTR")
-        )
+    base_line_col, base_scat_col = st.columns([0.6, 0.4], vertical_alignment="top", gap="medium")
 
-        span_3utr = alt.Chart(pd.DataFrame(
-            {'x1': [1519], 'x2': [2019]})).mark_rect(
-            opacity=0.1,
-        ).encode(
-            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                    title='Nucleotide Position'),
-            x2='x2',  # alt.datum(2019),
-            color=alt.value('cornflowerblue'),
-            tooltip=alt.value("3' UTR")
-        )
+    with base_line_col:
+        for label, df in df_by_class.items():
+            op_base = _opacity_param(f"base_{label.lower()}_opacity")
+            text_y_base = y_max + abs(y_max - y_min) * 0.05
 
-        span_term = alt.Chart(pd.DataFrame({'x1': [2020], 'x2': [3020]})).mark_rect(
-            opacity=0.1,
-        ).encode(
-            x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                    title='Nucleotide Position'),
-            x2='x2',
-            color=alt.value('grey'),
-            tooltip=alt.value("terminator")
-        )
-        saliency_chart = span_prom + span_5utr + span_3utr + span_term + saliency_chart + annotation_layer
-        st.altair_chart(saliency_chart, use_container_width=True, theme=None)
-        st.download_button("Download data as csv", data=prepare_saliency_data_to_download(avg_saliency, column_var='Predicted Expression Class'),
-                           file_name=f"data_average_saliency_plots_{datetime.now().strftime('%Y-%m-%d')}.csv",
-                           mime="text/csv")
-    with sal_scat:
-        sum_saliency_score, pred_prob, expressed, g_ids = [], [], [], []
-        if  not np.isnan(p_h[0]):
-            for idx in range(actual_scores_high.shape[0]):
-                sum_saliency_score.append(actual_scores_high[idx].sum())
-                pred_prob.append(p_h[idx])
-                expressed.append('High')
-                g_ids.append(g_h[idx])
-        if not np.isnan(p_l[0]):
-            for idx in range(actual_scores_low.shape[0]):
-                sum_saliency_score.append(actual_scores_low[idx].sum())
-                pred_prob.append(p_l[idx])
-                expressed.append('Low')
-                g_ids.append(g_l[idx])
-        data_sal_scat = pd.DataFrame(data={'Predicted Expression Class':expressed,
-                                           'Sum Saliency Score':sum_saliency_score,
-                                           'Probability of high expression':pred_prob,
-                                           'Gene ID':g_ids})
-        chart_title = alt.TitleParams(
-            "Saliency score vs Predicted probabilities",
-            subtitle=["""Saliency scores are summed per gene and plotted against probabilities of high expression""",
-                    f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
-            subtitleColor='grey'
-        )
-        saliency_scat = alt.Chart(data_sal_scat, title=chart_title).mark_circle(size=25).encode(
-            x=alt.X('Probability of high expression:Q'),
-            y=alt.Y('Sum Saliency Score:Q'),
-            color = alt.Color('Predicted Expression Class:N',
-                            scale=alt.Scale(range=color_palette_low_high,
-                                            domain=['High', 'Low'])),
-            tooltip=data_sal_scat.columns.tolist()
-        )
-        st.altair_chart(saliency_scat, use_container_width=True, theme=None)
-
-    sal_line_nucl, sal_scat_nucl = st.columns([0.6, 0.4], vertical_alignment='center', gap='medium')
-    with sal_line_nucl:
-        df_low = pd.DataFrame(data={
-            'Nucleotide Position': np.concatenate([np.arange(1, 3021) for _ in range(4)], axis=0),
-            'Saliency Score': np.concatenate([actual_scores_low.mean(axis=0)[:, i] for i in range(4)]),
-            'Base': list(itertools.chain(*[['A']*3020, ['C']*3020, ['G']*3020, ['T']*3020])),
-        })
-        df_high = pd.DataFrame(data={
-            'Nucleotide Position': np.concatenate([np.arange(1, 3021) for _ in range(4)], axis=0),
-            'Saliency Score': np.concatenate([actual_scores_high.mean(axis=0)[:, i] for i in range(4)]),
-            'Base': list(itertools.chain(*[['A'] * 3020, ['C'] * 3020, ['G'] * 3020, ['T'] * 3020])),
-        })
-        max_ylimit = max(df_low['Saliency Score'].max(), df_high['Saliency Score'].max())
-        min_ylimit = min(df_low['Saliency Score'].min(), df_high['Saliency Score'].min())
-        for df_name, df in zip(['High', 'Low'], [df_high, df_low]):
-            chart_title = alt.TitleParams(
-                f"Base-type average Saliency map for {df_name} expressed genes",
-                subtitle=[
-                    """Saliency scores are averaged across all sequences predicted per nucleotide""",
-                    f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
-                subtitleColor='grey'
+            line = _build_line_chart(
+                df,
+                title=f"Base-Type Saliency Map — {label} Expressed Genes",
+                subtitle=f"Saliency scores averaged per nucleotide for {label.lower()}-expressed genes",
+                color_field="Base",
+                color_scale=base_scale,
+                opacity_param=op_base,
+                y_domain=[y_min, y_max],
             )
-            # adding slider for opacity
-            op_var_base = alt.param(value=1, bind=alt.binding_range(min=0.2, max=1, step=0.05, name='opacity:'))
-            base = alt.Chart(df, title=chart_title)
-            saliency_chart_base = base.mark_line(opacity=op_var_base).encode(
-                x=alt.X('Nucleotide Position', scale=alt.Scale(domain=[1, 3021]),
-                        axis=alt.Axis(tickCount=10)),
-                y=alt.Y('Saliency Score:Q', scale=alt.Scale(domain=[min_ylimit, max_ylimit])),
-                color=alt.Color('Base:N',
-                                scale=alt.Scale(range=['green', 'cornflowerblue', 'darkorange',  'red'],
-                                                domain=['A', 'C', 'G', 'T']))
-            ).add_params(op_var_base)
-            max_saliency = df_high['Saliency Score'].max()
-            mean_pos_saliency = avg_saliency['Saliency Score'].mean()
-            text_y = max_saliency + mean_pos_saliency
-
-            annotations = [
-                (1000, text_y, "TSS", "Transcription Start Site"),
-                (2020, text_y, "TTS", "Transcription Termination site"),
-            ]
-            annotations_df = pd.DataFrame(
-                annotations, columns=["Nucleotide Position", "Saliency Score", "marker", "description"]
-            )
-            annotation_layer = (
-                alt.Chart(annotations_df)
-                .mark_text(size=15, dx=-10, dy=0, align="center")
-                .encode(x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
-                        y=alt.Y("Saliency Score:Q"), text="marker",
-                        tooltip="description")
+            chart = _composite(_region_layers(), line, text_y_base)
+            st.altair_chart(chart, use_container_width=True, theme=None)
+            st.download_button(
+                f"⬇️ Download {label} base-type saliency CSV",
+                data=_pivot_csv(df, "Base"),
+                file_name=f"base_saliency_{label.lower()}_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                mime="text/csv",
+                key=f"dl_base_{label}",
             )
 
-            rule = base.mark_rule(strokeDash=[2, 2]).encode(
-                y=alt.datum(0),
-                color=alt.value("black")
+    with base_scat_col:
+        for scores, probs, gids in [
+            (actual_scores_high, p_h, g_h),
+            (actual_scores_low,  p_l, g_l),
+        ]:
+            if np.isnan(probs[0]):
+                continue
+            n = len(probs)
+            df = pd.DataFrame({
+                "Base": list(itertools.chain(*[[b] * n for b in ["A", "C", "G", "T"]])),
+                "Probability of high expression": list(itertools.chain(*[probs] * 4)),
+                "Sum Saliency Score": np.concatenate([scores.sum(axis=1)[:, i] for i in range(4)]),
+                "Gene ID": list(itertools.chain(*[gids] * 4)),
+            })
+            scatter = _build_scatter(
+                df,
+                title="Base-Type Saliency vs. Probability",
+                subtitle="Sum saliency score per base vs. probability of high expression",
+                color_field="Base",
+                color_scale=base_scale,
             )
-
-            span_prom = alt.Chart(pd.DataFrame({'x1': [0], 'x2': [999]})).mark_rect(
-                opacity=0.1,
-            ).encode(
-                x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                        title='Nucleotide Position'),
-                x2='x2',
-                color=alt.value('grey'),
-                tooltip=alt.value("promoter")
-            )
-
-            span_5utr = alt.Chart(
-                pd.DataFrame({'x1': [1000], 'x2': [1499]})).mark_rect(
-                opacity=0.1,
-            ).encode(
-                x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                        title='Nucleotide Position'),
-                x2='x2',  # alt.datum(2019),
-                color=alt.value('red'),
-                tooltip=alt.value("5' UTR")
-            )
-
-            span_3utr = alt.Chart(pd.DataFrame(
-                {'x1': [1519], 'x2': [2019]})).mark_rect(
-                opacity=0.1,
-            ).encode(
-                x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                        title='Nucleotide Position'),
-                x2='x2',  # alt.datum(2019),
-                color=alt.value('cornflowerblue'),
-                tooltip=alt.value("3' UTR")
-            )
-
-            span_term = alt.Chart(pd.DataFrame({'x1': [2020], 'x2': [3020]})).mark_rect(
-                opacity=0.1,
-            ).encode(
-                x=alt.X('x1', scale=alt.Scale(domain=[1, 3021]),
-                        title='Nucleotide Position'),
-                x2='x2',
-                color=alt.value('grey'),
-                tooltip=alt.value("terminator")
-            )
-
-            saliency_chart_base = span_prom + span_5utr + span_3utr + span_term + saliency_chart_base + annotation_layer + rule
-            st.altair_chart(saliency_chart_base, use_container_width=True, theme=None)
-            st.download_button("Download data as csv", data=prepare_saliency_data_to_download(df, column_var='Base'),
-                               file_name=f"data_saliency_plots_{df_name}_base_resolution_{datetime.now().strftime('%Y-%m-%d')}.csv",
-                               mime="text/csv")
-
-    with sal_scat_nucl:
-        for scores_arr, probs, gs in zip([actual_scores_high, actual_scores_low], [p_h, p_l], [g_h, g_l]):
-            n_genes = len(probs)
-            if n_genes == scores_arr.shape[0]:
-                df = pd.DataFrame(data={
-                    'Base':list(itertools.chain(*[['A'] * n_genes , ['C'] * n_genes,
-                                                ['G'] * n_genes, ['T'] * n_genes])),
-                    'Probability of high expression': list(itertools.chain(*[probs for _ in range(4)])),
-                    'Sum Saliency Score': np.concatenate([scores_arr.sum(axis=1)[:, i] for i in range(4)]),
-                    'Gene ID': list(itertools.chain(*[gs for _ in range(4)]))
-                })
-
-                chart_title = alt.TitleParams(
-                    "Saliency score vs Predicted probabilities",
-                    subtitle=[
-                        """Base-type""",
-                        f"Created on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"],
-                    subtitleColor='grey'
-                )
-                saliency_scat = alt.Chart(df, title=chart_title).mark_circle(size=25).encode(
-                    x=alt.X('Probability of high expression:Q', scale=alt.Scale(domain=[0, 1])),
-                    y=alt.Y('Sum Saliency Score:Q'),
-                    color=alt.Color('Base:N',
-                                    scale=alt.Scale(range=['green', 'cornflowerblue', 'darkorange',  'red'],
-                                                    domain=['A', 'C', 'G', 'T'])),
-                    tooltip=df.columns.tolist()
-                )
-
-                st.altair_chart(saliency_scat, use_container_width=True, theme=None)
+            st.altair_chart(scatter, use_container_width=True, theme=None)
