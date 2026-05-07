@@ -139,6 +139,8 @@ def show_manual_mutation(gene_id: str, start: int, end: int,
 
     def apply_mutation():
         edited = st.session_state.sub_seq_to_mutate
+        if len(edited) != mut_reg_end - mut_reg_start:
+            edited += "N" * (mut_reg_end - mut_reg_start - len(edited))
         full = st.session_state.mutated_seq
         st.session_state.mutated_seq = full[:mut_reg_start] + edited + full[mut_reg_end:]
 
