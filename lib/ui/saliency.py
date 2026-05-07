@@ -10,7 +10,7 @@ import streamlit as st
 
 def _section(label: str) -> None:
     st.markdown(
-        f"""<div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
+        f"""<div style="font-size:1.25rem;font-weight:700;text-transform:uppercase;
                         letter-spacing:0.07em;color:#4F1787;margin:1.4rem 0 0.6rem 0;
                         padding-bottom:4px;border-bottom:1px solid #ede9f5;">
                 {label}
@@ -32,10 +32,10 @@ def _chart_title(title: str, subtitle: str) -> alt.TitleParams:
 # ── Genomic region span helpers ───────────────────────────────────────────────
 
 _REGION_SPANS = [
-    (0,    999,  "grey",          "gUR (gene Upstream Region)"),
-    (1000, 1499, "red",           "gTUR (gene 5′ UTR Region)"),
-    (1519, 2019, "cornflowerblue","gTDR (gene 3′ UTR Region)"),
-    (2020, 3020, "grey",          "gDR (gene Downstream Region)"),
+    (0,    999,  "grey",          "gUR (gene upstream region)"),
+    (1000, 1499, "red",           "gTUR (transcribed upstream portion)"),
+    (1519, 2019, "cornflowerblue","gTDR (transcribed downstream portion)"),
+    (2020, 3020, "grey",          "gDR (gene downstream region)"),
 ]
 
 def _region_layers() -> list[alt.Chart]:

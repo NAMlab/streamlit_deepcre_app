@@ -7,7 +7,7 @@ from io import StringIO
 def _section(label: str) -> None:
     st.sidebar.markdown(
         f"""
-        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;
+        <div style="font-size:1.25rem;font-weight:700;text-transform:uppercase;
                     letter-spacing:0.07em;color:#4F1787;margin:1.1rem 0 0.3rem 0;
                     padding-bottom:3px;border-bottom:1px solid #ede9f5;">
             {label}

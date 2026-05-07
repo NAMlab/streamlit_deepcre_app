@@ -10,7 +10,7 @@ import streamlit as st
 
 def _section(label: str) -> None:
     st.markdown(
-        f"""<div style="font-size:0.75rem;font-weight:700;letter-spacing:0.04em;
+        f"""<div style="font-size:1.25rem;font-weight:700;letter-spacing:0.04em;
                         color:#4F1787;margin:1.2rem 0 0.5rem 0;
                         padding-bottom:4px;border-bottom:1px solid #ede9f5;">
                 {label}
@@ -43,10 +43,10 @@ def _region_span(x1: int, x2: int, color: str, tip: str) -> alt.Chart:
 
 def _genomic_spans(utr_len: int, central_pad_size: int) -> list[alt.Chart]:
     return [
-        _region_span(0,                                    999,             "grey",          "gUR (gene Upstream Region)"),
-        _region_span(1000,                                 1000 + utr_len,  "red",           "gTUR (gene 5′ UTR Region)"),
-        _region_span(1000 + utr_len + central_pad_size,    2019,            "cornflowerblue","gTDR (gene 3′ UTR Region)"),
-        _region_span(2020,                                 3020,            "grey",          "gDR (gene Downstream Region)"),
+        _region_span(0,                                    999,             "grey",          "gUR (gene upstream region)"),
+        _region_span(1000,                                 1000 + utr_len,  "red",           "gTUR (transcribed upstream portion)"),
+        _region_span(1000 + utr_len + central_pad_size,    2019,            "cornflowerblue","gTDR (transcribed downstream portion)"),
+        _region_span(2020,                                 3020,            "grey",          "gDR (gene downstream region)"),
     ]
 
 

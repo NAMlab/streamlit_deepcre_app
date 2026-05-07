@@ -7,7 +7,7 @@ import streamlit as st
 def _section(label: str, icon: str = "") -> None:
     prefix = f"{icon} " if icon else ""
     st.markdown(
-        f"""<div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;
+        f"""<div style="font-size:1.25rem;font-weight:700;text-transform:uppercase;
                         letter-spacing:0.07em;color:#4F1787;margin:1.6rem 0 0.5rem 0;
                         padding-bottom:5px;border-bottom:2px solid #ede9f5;">
                 {prefix}{label}

@@ -52,7 +52,7 @@ html, body, [class*="css"] { font-family: 'Inter', 'Segoe UI', sans-serif; }
 }
 .deepcre-header p {
     margin: 0;
-    font-size: 0.82rem;
+    font-size: 1.25rem;
     color: #6b7280;
 }
 
