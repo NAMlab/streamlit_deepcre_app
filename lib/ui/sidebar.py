@@ -23,7 +23,7 @@ def _validate_file(file, label: str):
     """Return the file if non-empty, otherwise show an error and return None."""
     if file.size > 0:
         return file
-    st.sidebar.error(f"⚠️ The uploaded **{label}** file is empty. Please verify.", icon="🚨")
+    st.sidebar.error(f"⚠️ The uploaded **{label}** file is empty. Please verify.")
     return None
 
 
@@ -46,7 +46,7 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
     st.sidebar.markdown(
         """
         <div style="text-align:center;padding:0.6rem 0 0.2rem 0;">
-            <span style="font-size:2rem;">🧬</span>
+            <span style="font-size:2rem;"/span>
             <div style="font-size:1.05rem;font-weight:700;color:#4F1787;margin-top:2px;">deepCRE</div>
             <div style="font-size:0.72rem;color:#9ca3af;">CRE expression predictor</div>
         </div>
@@ -56,7 +56,7 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
     )
 
     # ── Species / genome ──────────────────────────────────────────────────────
-    _section("🌿 Reference Organism")
+    _section("Reference Organism")
     selected_organism = st.sidebar.selectbox(
         label="Species",
         options=available_species,
@@ -90,7 +90,7 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
         annotation = row["annotation_file"].values[0]
 
     # ── Gene list ─────────────────────────────────────────────────────────────
-    _section("🔬 Gene List")
+    _section("📂 Gene List")
     genes_upload = st.sidebar.file_uploader(
         label="Gene IDs (.csv / .txt)",
         type=[".csv", ".txt"],
@@ -117,7 +117,7 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
             )
 
     # ── Model ─────────────────────────────────────────────────────────────────
-    _section("🤖 deepCRE Model")
+    _section("deepCRE Model")
     selected_model = st.sidebar.selectbox(
         label="Model",
         options=available_models,

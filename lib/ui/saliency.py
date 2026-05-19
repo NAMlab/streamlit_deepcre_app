@@ -9,15 +9,7 @@ import streamlit as st
 # ── Styling helpers ───────────────────────────────────────────────────────────
 
 def _section(label: str) -> None:
-    st.markdown(
-        f"""<div style="font-size:1.25rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:0.07em;color:#4F1787;margin:1.4rem 0 0.6rem 0;
-                        padding-bottom:4px;border-bottom:1px solid #ede9f5;">
-                {label}
-            </div>""",
-        unsafe_allow_html=True,
-    )
-
+    st.subheader(label)
 
 def _chart_title(title: str, subtitle: str) -> alt.TitleParams:
     return alt.TitleParams(
@@ -149,7 +141,7 @@ def show_saliency_tab(
     positions  = np.arange(1, 3021)
 
     # ── 1. Average saliency map ───────────────────────────────────────────────
-    _section("📈 Average Saliency Map")
+    _section("Average Saliency Map")
     avg_line_col, avg_scat_col = st.columns([0.6, 0.4], vertical_alignment="top", gap="medium")
 
     avg_df = pd.DataFrame({
@@ -176,7 +168,7 @@ def show_saliency_tab(
         chart = _composite(_region_layers(), line, text_y)
         st.altair_chart(chart, use_container_width=True, theme=None)
         st.download_button(
-            "⬇️ Download average saliency CSV",
+            "Download average saliency CSV",
             data=_pivot_csv(avg_df, "Expression"),
             file_name=f"avg_saliency_{datetime.now().strftime('%Y-%m-%d')}.csv",
             mime="text/csv",
@@ -208,7 +200,7 @@ def show_saliency_tab(
         st.altair_chart(scatter, use_container_width=True, theme=None)
 
     # ── 2. Per-nucleotide base-type saliency maps ─────────────────────────────
-    _section("🔬 Base-Type Saliency Maps")
+    _section("Base-Type Saliency Maps")
 
     df_by_class = {}
     for label, scores in [("High", actual_scores_high), ("Low", actual_scores_low)]:
@@ -240,7 +232,7 @@ def show_saliency_tab(
             chart = _composite(_region_layers(), line, text_y_base)
             st.altair_chart(chart, use_container_width=True, theme=None)
             st.download_button(
-                f"⬇️ Download {label} base-type saliency CSV",
+                f"Download {label} base-type saliency CSV",
                 data=_pivot_csv(df, "Base"),
                 file_name=f"base_saliency_{label.lower()}_{datetime.now().strftime('%Y-%m-%d')}.csv",
                 mime="text/csv",

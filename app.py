@@ -11,6 +11,7 @@ from lib.ui.predictions import show_predictions_tab
 from lib.ui.saliency import show_saliency_tab
 from lib.ui.license_ref import show_license_ref
 from lib.ui.mutation import choose_analysis_type, show_manual_mutation, show_mutation_results, show_vcf_input
+from lib.ui.tutorial import show_tutorial_tab
 from lib.storage import *
 
 tf.compat.v1.disable_eager_execution()
@@ -28,32 +29,33 @@ MODEL_NAMES = sorted(
 # ── Custom CSS ───────────────────────────────────────────────────────────────
 CUSTOM_CSS = """
 <style>
-/* ── Global typography ── */
-html, body, [class*="css"] { font-family: 'Inter', 'Segoe UI', sans-serif; }
+/* ── Global typography (Safely targeted) ── */
+html, body, [class*="css"] { 
+    font-family: 'Inter', 'Segoe UI', sans-serif !important; 
+}
 
-/* ── Page header ── */
-.deepcre-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 1.2rem 0 0.4rem 0;
-    border-bottom: 2px solid #4F1787;
-    margin-bottom: 1.4rem;
+/* Safely target standard markdown text without breaking Streamlit widgets */
+.stMarkdown p { 
+    color: #333333; 
 }
-.deepcre-header .logo {
-    font-size: 2rem;
+
+/* ── Harmonized Headers ── */
+h1, h2, h3, h4, h5 {
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    color: #4F1787 !important; /* Unified Deep Purple */
+    font-weight: 700 !important;
 }
-.deepcre-header h1 {
-    margin: 0;
-    font-size: 1.55rem;
-    font-weight: 700;
-    color: #4F1787;
-    line-height: 1.2;
+h1 { font-size: 2.0rem !important; border-bottom: 2px solid #4F1787; padding-bottom: 10px; margin-bottom: 20px;}
+h3 { font-size: 1.3rem !important; margin-top: 1.5rem !important; margin-bottom: 0.5rem !important; }
+
+/* ── Primary Action Buttons (Red-Orange) ── */
+button[kind="primary"] {
+    background: linear-gradient(90deg, #FF4B4B, #FF8E53) !important;
+    border: none !important;
 }
-.deepcre-header p {
-    margin: 0;
-    font-size: 1.25rem;
-    color: #6b7280;
+button[kind="primary"] p {
+    color: #FFFFFF !important; /* Forces text to be white */
+    font-weight: 600 !important;
 }
 
 /* ── Sidebar polish ── */
@@ -61,64 +63,89 @@ section[data-testid="stSidebar"] {
     background: #fafafa;
     border-right: 1px solid #e5e7eb;
 }
-section[data-testid="stSidebar"] .stSelectbox label,
-section[data-testid="stSidebar"] .stFileUploader label {
+section[data-testid="stSidebar"] label {
     font-weight: 600;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #374151;
+    color: #4F1787 !important; 
 }
 
-/* ── Metric cards ── */
-.metric-row { display: flex; gap: 12px; margin-bottom: 1rem; flex-wrap: wrap; }
-.metric-card {
-    flex: 1;
-    min-width: 130px;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 0.9rem 1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-.metric-card .label { font-size: 0.72rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
-.metric-card .value { font-size: 1.5rem; font-weight: 700; color: #111827; margin-top: 2px; }
-.metric-card .sub   { font-size: 0.75rem; color: #9ca3af; margin-top: 1px; }
-
-/* ── Section dividers ── */
-.section-header {
-    font-size: 0.78rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #4F1787;
-    margin: 1.4rem 0 0.5rem 0;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #ede9f5;
+/* ── Info & Instruction Banners ── */
+.stAlert {
+    border-radius: 6px !important;
 }
 
-/* ── Info banner ── */
-.info-banner {
-    background: #f0fdf4;
-    border-left: 4px solid #22c55e;
-    border-radius: 6px;
-    padding: 0.75rem 1rem;
-    font-size: 0.87rem;
-    color: #166534;
-    margin-bottom: 1rem;
+/* ── Force Tab Text to be Larger ── */
+button[data-baseweb="tab"] p {
+    font-size: 1.25rem !important; 
+    font-weight: 600 !important;
+    color: #333333;
 }
-.warn-banner {
-    background: #fefce8;
-    border-left: 4px solid #eab308;
-    border-radius: 6px;
-    padding: 0.75rem 1rem;
-    font-size: 0.87rem;
-    color: #713f12;
-    margin-bottom: 1rem;
+button[data-baseweb="tab"] {
+    padding-top: 0.8rem !important;
+    padding-bottom: 0.8rem !important;
+}
+/* ── Harmonized Headers ── */
+h1, h2, h4, h5 {
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    color: #4F1787 !important; /* Unified Deep Purple for standard titles */
+    font-weight: 700 !important;
+}
+h1 {
+    font-size: 2.0rem !important;
+    border-bottom: 2px solid #4F1787;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* ── Standout Section Headers (st.subheader / h3) ── */
+h3 {
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    font-size: 1.4rem !important;
+    font-weight: 800 !important;
+    margin-top: 1.8rem !important;
+    margin-bottom: 0.8rem !important;
+    padding-bottom: 6px;
+
+    /* Vibrant Red-Orange Gradient Text */
+    background: linear-gradient(90deg, #FF4B4B, #FF8E53) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    border-bottom: 2px solid #FFEDEA; /* Soft underline matching the gradient */
+}
+/* ── Navigation Tabs (Framed & Purple Gradient) ── */
+
+/* 1. The Grey Background Frame */
+div[data-baseweb="tab-list"] {
+    background-color: #F1F5F9 !important; /* Soft, professional slate grey */
+    padding: 0.6rem 1rem !important;
+    border-radius: 10px !important;
+    gap: 0.5rem !important;
+}
+
+/* 2. The Tab Button Containers */
+button[data-baseweb="tab"] {
+    padding: 0.6rem 1.4rem !important;
+    border-radius: 8px !important;
+    border: none !important;
+    background-color: transparent !important;
+}
+
+/* 3. Make the "Active" tab pop out like a physical card */
+button[data-baseweb="tab"][aria-selected="true"] {
+    background-color: #FFFFFF !important;
+    box-shadow: 0px 2px 5px rgba(0,0,0,0.08) !important;
+}
+/* 4. The Tab Text (Larger + Solid Purple) */
+button[data-baseweb="tab"] p {
+    font-size: 1.55rem !important; /* Keeps the larger size */
+    font-weight: 800 !important;
+    margin: 0 !important;
+    color: #4F1787 !important; /* Solid Deep Purple */
 }
 </style>
 """
-
 
 def _gene_index(gene_ids: list, gene_id: str) -> int:
     """Return list index for a gene ID (avoids repeated .index() calls)."""
@@ -129,7 +156,7 @@ def _render_header() -> None:
     st.markdown(
         """
         <div class="deepcre-header">
-            <span class="logo">🧬</span>
+            <span class="logo"/span>
             <div>
                 <h1>deepCRE</h1>
                 <p>Predicting gene expression from cis-regulatory elements using deep learning</p>
@@ -163,7 +190,7 @@ def _handle_manual_mutation(gene_ids, gene_starts, gene_ends, x, progress_marker
     gene_col, _ = st.columns([0.3, 0.7])
     with gene_col:
         gene_id = st.selectbox(
-            label=":gray[Select] :green[**gene**]", options=gene_ids
+            label="Select Gene", options=gene_ids
         )
 
     idx = _gene_index(gene_ids, gene_id)
@@ -189,66 +216,89 @@ def _handle_manual_mutation(gene_ids, gene_starts, gene_ends, x, progress_marker
         utr_len, central_pad_size, mut_reg_start, mut_reg_end,
     )
 
-
 def _handle_vcf_mutation(gene_ids, gene_starts, gene_ends, gene_chroms, gene_strands, x, progress_marker) -> None:
-    vcf_file = show_vcf_input()
-    progress_marker.update(label="Processing VCF file…")
-    vcf_df = getVcfContent(vcf_file, gene_starts, gene_ends, gene_chroms)
+    
+    # --- Hide the empty uploader during the tutorial to avoid confusion ---
+    if st.session_state.get("tutorial_vcf_active"):
+        st.info("💡 **Tutorial VCF Mode Active:** The file `Supplementary-file-3` is pre-loaded in memory. The standard file uploader is hidden.", icon="ℹ️")
+        import io
+        import os
+        file_path = "tutorial/File_3_deepCRE_tutorial_rap12-2-variant_Supplementary-file-3_dCRE_Peleketal2025.vcf.gz"
+        if os.path.exists(file_path):
+            with open(file_path, "rb") as f:
+                vcf_file = io.BytesIO(f.read())
+                vcf_file.name = "tutorial_variants.vcf.gz"
+                vcf_file.size = os.path.getsize(file_path)
+        else:
+            st.error(f"❌ Could not find the VCF file at: {file_path}")
+            return
+    else:
+        vcf_file = show_vcf_input()
 
     if vcf_file is None:
         return
 
-    vcf_col, gene_col, _ = st.columns([0.4, 0.5, 0.1], vertical_alignment="center")
+    progress_marker.update(label="Processing VCF file…")
+    vcf_df = getVcfContent(vcf_file, gene_starts, gene_ends, gene_chroms)
 
-    with vcf_col:
-        st.markdown('<div class="section-header">First 50 SNPs in VCF</div>', unsafe_allow_html=True)
-        st.dataframe(vcf_df.head(50))
+    # --- NEW: Layout simplified (removed the 50-SNP head table and split columns) ---
+    
+    # --- Auto-select the RAP2.12 tutorial gene ---
+    default_idx = 0
+    if st.session_state.get("tutorial_vcf_active"):
+        tut_gene = st.session_state.get("tutorial_vcf_gene", "AT1G53910")
+        if tut_gene in gene_ids:
+            default_idx = gene_ids.index(tut_gene)
 
-    with gene_col:
-        gene_id = st.selectbox(label="Choose gene", options=gene_ids)
-        idx = _gene_index(gene_ids, gene_id)
+    gene_id = st.selectbox(label="Choose gene", options=gene_ids, index=default_idx)
+    idx = _gene_index(gene_ids, gene_id)
 
-        seq = one_hot_to_dna(x[idx])[0]
-        strand = gene_strands[idx]
-        start, end = gene_starts[idx], gene_ends[idx]
-        chrom = gene_chroms[idx]
-        utr_len = min(500, abs(end - start) // 2)
-        central_pad_size = 3020 - (1000 + utr_len) * 2
+    seq = one_hot_to_dna(x[idx])[0]
+    strand = gene_strands[idx]
+    start, end = gene_starts[idx], gene_ends[idx]
+    chrom = gene_chroms[idx]
+    utr_len = min(500, abs(end - start) // 2)
+    central_pad_size = 3020 - (1000 + utr_len) * 2
 
-        prom_start, prom_end = start - 1000, start + utr_len
-        term_start, term_end = end - utr_len, end + 1000
+    prom_start, prom_end = start - 1000, start + utr_len
+    term_start, term_end = end - utr_len, end + 1000
 
-        def _tag_snps(mask, region_label_plus, region_label_minus):
-            df = vcf_df[mask].copy()
-            df["Region"] = region_label_plus if strand == "+" else region_label_minus
-            return df
+    def _tag_snps(mask, region_label_plus, region_label_minus):
+        df = vcf_df[mask].copy()
+        df["Region"] = region_label_plus if strand == "+" else region_label_minus
+        return df
 
-        snps_prom = _tag_snps(
-            (vcf_df["Pos"] > prom_start) & (vcf_df["Pos"] < prom_end) & (vcf_df["Chrom"] == chrom),
-            "Promoter", "Terminator",
-        )
-        snps_term = _tag_snps(
-            (vcf_df["Pos"] > term_start) & (vcf_df["Pos"] < term_end) & (vcf_df["Chrom"] == chrom),
-            "Terminator", "Promoter",
-        )
+    snps_prom = _tag_snps(
+        (vcf_df["Pos"] > prom_start) & (vcf_df["Pos"] < prom_end) & (vcf_df["Chrom"] == chrom),
+        "Promoter", "Terminator",
+    )
+    snps_term = _tag_snps(
+        (vcf_df["Pos"] > term_start) & (vcf_df["Pos"] < term_end) & (vcf_df["Chrom"] == chrom),
+        "Terminator", "Promoter",
+    )
 
-        snps_cis = (
-            pd.concat([snps_prom, snps_term], axis=0)
-            .assign(Strand=strand)
-            .sort_values(["Region", "Pos"])
-            .reset_index(drop=True)
-        )
+    snps_cis = (
+        pd.concat([snps_prom, snps_term], axis=0)
+        .assign(Strand=strand)
+        .sort_values(["Region", "Pos"])
+        .reset_index(drop=True)
+    )
 
-        if "current_gene" not in st.session_state:
-            st.session_state.current_gene = gene_id
+    if "current_gene" not in st.session_state:
+        st.session_state.current_gene = gene_id
 
-        st.markdown(
-            f'<div class="section-header">SNPs in cis-regulatory regions of {gene_id}</div>',
-            unsafe_allow_html=True,
-        )
-        selection = dataframe_with_selections(df=snps_cis)
-        st.markdown('<div class="section-header">Selected SNPs</div>', unsafe_allow_html=True)
-        st.dataframe(selection, use_container_width=True)
+    st.markdown(
+        f'<div class="section-header">SNPs in cis-regulatory regions of {gene_id}</div>',
+        unsafe_allow_html=True,
+    )
+    
+    # --- NEW: Added explicit instructions for the user ---
+    st.info("**Instructions:** Click on the lines (rows) in the table below to select your desired SNPs. Once selected, click the **Mutate Sequence** button below the table to apply the chosen mutations to the sequence.", icon="ℹ️")
+
+    selection = dataframe_with_selections(df=snps_cis)
+
+    st.markdown('<div class="section-header">Selected SNPs</div>', unsafe_allow_html=True)
+    st.dataframe(selection, use_container_width=True)
 
     if selection.empty:
         return
@@ -256,6 +306,7 @@ def _handle_vcf_mutation(gene_ids, gene_starts, gene_ends, gene_chroms, gene_str
     complements = {"A": "T", "T": "A", "C": "G", "G": "C", "N": "N"}
 
     if st.button("Mutate Sequence", type="primary"):
+        
         if "cis_seq" not in st.session_state:
             st.session_state["cis_seq"] = seq
         if st.session_state.current_gene != gene_id:
@@ -293,8 +344,6 @@ def _handle_vcf_mutation(gene_ids, gene_starts, gene_ends, gene_chroms, gene_str
             gene_id, pred_probs, actual_scores, seq,
             utr_len, central_pad_size, None, None, mut_markers,
         )
-
-
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -309,25 +358,37 @@ def main() -> None:
 
     _render_header()
 
-    # ── Sidebar ──────────────────────────────────────────────────────────────
+   # ── Sidebar ──────────────────────────────────────────────────────────────
     selected_organism, genome, annotation, genes_list, selected_model, use_example = show_sidebar(
         available_species=SPECIES,
         available_genomes=AVAILABLE_GENOMES,
         available_models=MODEL_NAMES,
     )
+
+    # ---Catch the Tutorial Data Override ---
+    if st.session_state.get("tutorial_active", False):
+        st.info("💡 **Tutorial Demo is active!** Using tutorial gene list and model. Go to the Tutorial tab to clear this data.", icon="ℹ️")
+        genes_list = st.session_state.tutorial_genes
+        selected_model = st.session_state.tutorial_model
+        selected_organism = "Arabidopsis thaliana (TAIR10)" 
+
     validateDataset(genome, annotation, genes_list, use_example)
     validateModel(f"models/{selected_model}.h5")
 
-    _render_dataset_banner(genome, annotation, genes_list, use_example, selected_organism)
+    # Hide the "upload data" banners if the tutorial is running
+    if not st.session_state.get("tutorial_active", False):
+        _render_dataset_banner(genome, annotation, genes_list, use_example, selected_organism)
 
     # ── Tabs ──────────────────────────────────────────────────────────────────
     progress_marker = st.status("Processing data…", expanded=False)
-    home_tab, preds_tab, interpret_tab, mutations_tab, about_tab = st.tabs(
-        ["🏠 Home", "📊 Predictions", "🔍 Explanation", "🧪 Mutation", "ℹ️ About"]
+    home_tab, preds_tab, interpret_tab, mutations_tab, tutorial_tab, about_tab = st.tabs(
+        ["Home", "Predictions", "Explanation", "Mutation","Tutorial", "About"]
     )
 
     with home_tab:
         show_about_tab(AVAILABLE_GENOMES)
+    with tutorial_tab:                
+        show_tutorial_tab()              
     with about_tab:
         show_license_ref()
 

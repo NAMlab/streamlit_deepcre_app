@@ -6,15 +6,7 @@ import altair as alt
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _section(label: str) -> None:
-    st.markdown(
-        f"""<div style="font-size:1.25rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:0.07em;color:#4F1787;margin:1.4rem 0 0.6rem 0;
-                        padding-bottom:4px;border-bottom:1px solid #ede9f5;">
-                {label}
-            </div>""",
-        unsafe_allow_html=True,
-    )
-
+    st.subheader(label)
 
 def _chart_title(title: str, subtitle: str) -> alt.TitleParams:
     return alt.TitleParams(
@@ -59,7 +51,7 @@ def show_predictions_tab(
     })
 
     # ── Table + per-chromosome gene count ────────────────────────────────────
-    _section("📋 Gene Predictions Table")
+    _section("Gene Predictions Table")
     tbl_col, chr_col = st.columns([0.65, 0.35], vertical_alignment="top")
 
     with tbl_col:
@@ -74,7 +66,7 @@ def show_predictions_tab(
             },
         )
         st.download_button(
-            "⬇️ Download table as CSV",
+            "Download table as CSV",
             data=_to_csv(predictions),
             file_name=f"deepcre_predictions_{datetime.now().strftime('%Y-%m-%d')}.csv",
             mime="text/csv",
@@ -96,7 +88,7 @@ def show_predictions_tab(
         st.altair_chart(chart, use_container_width=True, theme=None)
 
     # ── Expression class by chromosome ───────────────────────────────────────
-    _section("📊 Expression Class Distribution")
+    _section("Expression Class Distribution")
     dist_col, hist_col = st.columns([0.65, 0.35], vertical_alignment="top", gap="medium")
 
     with dist_col:
@@ -143,7 +135,7 @@ def show_predictions_tab(
         st.altair_chart(chart_prob_hist, use_container_width=True, theme=None)
 
     # ── Gene size & GC content scatter plots ─────────────────────────────────
-    _section("🔬 Gene Properties vs. Predicted Expression")
+    _section("Gene Properties vs. Predicted Expression")
     size_col, gc_col = st.columns(2, gap="medium")
 
     with size_col:

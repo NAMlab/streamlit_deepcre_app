@@ -1,6 +1,6 @@
 import itertools
 from datetime import datetime
-
+from lib.ui.tutorial import load_tutorial_fasta
 import altair as alt
 import numpy as np
 import pandas as pd
@@ -70,33 +70,55 @@ def _annotation_layer(text_y: float) -> alt.Chart:
 # ── Analysis type selector ────────────────────────────────────────────────────
 
 def choose_analysis_type() -> str:
-    _section("🔧 Analysis Mode")
-    col, _ = st.columns([0.25, 0.75])
-    with col:
-        mode = st.radio(
-            "Choose analysis type",
-            options=["**manual**", "**VCF**"],
-            captions=["Manually edit the CRE sequence", "Apply natural variants from a VCF file"],
-            label_visibility="collapsed",
-        )
+    """Renders the radio button to select between manual and VCF mutation modes."""
+    st.subheader("Analysis Mode")
+    
+    mode = st.radio(
+        label="Select Analysis Mode",
+        options=["**manual**", "**VCF**"],
+        captions=[
+            "Manually edit the CRE sequence", 
+            "Apply natural variants from a VCF file"
+        ],
+        label_visibility="collapsed",  # Hides the redundant label above the buttons
+        key="analysis_mode_radio"
+    )
+    
     return mode
-
 
 # ── Manual mutation UI ────────────────────────────────────────────────────────
 
 def show_manual_mutation(gene_id: str, start: int, end: int,
                          seq: str, utr_len: int, central_pad_size: int):
+    # --- Tutorial Shortcut for Manual Mode ---
+    st.info("**Tutorial Shortcut:** See the **Tutorial** tab for full context, or load the demo sequence right here.", icon="ℹ️")
+    if st.session_state.get("tutorial_mutation_active"):
+        if st.button("❌ Clear Tutorial Sequence", key="mut_clear_fasta"):
+            st.session_state.tutorial_mutation_active = False
+            st.rerun()
+    else:
+        if st.button("Load Tutorial Sequence (OsACT1)", key="mut_load_fasta"):
+            st.session_state.tutorial_mutation_active = True
+            st.session_state.tutorial_mut_seq = load_tutorial_fasta("gTUR_Osativa_OsACT1_KP100426-PIG2_5UTR500BP")
+            
+            # --- Snap the UI coordinates safely ---
+            st.session_state.mut_region_selection = "gTUR"
+            st.session_state.mut_coord_slider = (1001, 1500)
+            
+            st.rerun()
+
     # Initialise session state for this gene
     if "current_gene" not in st.session_state or st.session_state.current_gene != gene_id:
         st.session_state.current_gene = gene_id
         st.session_state.mutated_seq  = seq
 
-    _section("🗂️ Select Region to Mutate")
+    _section("Select Region to Mutate")
     sel_region = st.radio(
         "Region",
         options=["gUR", "gTUR", "gTDR", "gDR"],
         horizontal=True,
         label_visibility="collapsed",
+        key="mut_region_selection"
     )
 
     region_coords = {
@@ -114,13 +136,14 @@ def show_manual_mutation(gene_id: str, start: int, end: int,
     slider_col, seq_col = st.columns([0.4, 0.6])
 
     with slider_col:
-        _section("📍 Coordinate Range")
+        _section("Coordinate Range")
         with st.form("mutation_form", clear_on_submit=False, border=False):
             slider_vals = st.slider(
                 "Start / End coordinates",
                 min_value=val, max_value=max_val,
                 value=(min_val, max_val), step=1,
                 label_visibility="collapsed",
+                key="mut_coord_slider"
             )
             st.form_submit_button("Apply", type="primary")
 
@@ -134,8 +157,14 @@ def show_manual_mutation(gene_id: str, start: int, end: int,
     if pad > 0:
         sub_seq += "N" * pad
 
-    if "sub_seq_to_mutate" not in st.session_state:
+    # ---: Dynamic sequence update & Tutorial Injection ---
+    if "sub_seq_to_mutate" not in st.session_state or st.session_state.get("last_mut_coords") != (mut_reg_start, mut_reg_end):
         st.session_state.sub_seq_to_mutate = sub_seq
+        st.session_state.last_mut_coords = (mut_reg_start, mut_reg_end)
+
+    if st.session_state.get("tutorial_mutation_active"):
+        st.session_state.sub_seq_to_mutate = st.session_state.tutorial_mut_seq
+        st.session_state.tutorial_mutation_active = False
 
     def apply_mutation():
         edited = st.session_state.sub_seq_to_mutate
@@ -145,18 +174,17 @@ def show_manual_mutation(gene_id: str, start: int, end: int,
         st.session_state.mutated_seq = full[:mut_reg_start] + edited + full[mut_reg_end:]
 
     with seq_col:
-        _section(f"✏️ Edit {sel_region} ({mut_reg_start}–{mut_reg_end})")
+        _section(f"Edit {sel_region} ({mut_reg_start}–{mut_reg_end})")
         edited_seq = st.text_area(
             label=f"{sel_region} sequence",
-            value=st.session_state.mutated_seq[mut_reg_start:mut_reg_end],
+            value=st.session_state.sub_seq_to_mutate, # Uses our synced state
             max_chars=len(st.session_state.mutated_seq[mut_reg_start:mut_reg_end]),
             height=80,
             key="sub_seq_to_mutate",
             label_visibility="collapsed",
             on_change=apply_mutation,
         )
-        if len(edited_seq) != mut_reg_end - mut_reg_start:
-            edited_seq += "N" * (mut_reg_end - mut_reg_start - len(edited_seq))
+    # ---------------------------------------------------------
 
         if st.button("Mutate", type="primary"):
             st.session_state.mutated_seq = st.session_state.mutated_seq[:mut_reg_start] + edited_seq + st.session_state.mutated_seq[mut_reg_end:]
@@ -252,7 +280,7 @@ def show_mutation_results(
         layers.insert(-1, snp_layer)
 
     # ── Layout ────────────────────────────────────────────────────────────────
-    _section("📊 Mutation Results")
+    _section("Mutation Results")
     bar_col, sal_col = st.columns([0.18, 0.82])
 
     with bar_col:
@@ -277,6 +305,37 @@ def show_mutation_results(
 
     if mut_markers is None:
         st.button("↺ Reset sequence", type="primary", on_click=_reset)
+    
+
+
+
+    st.markdown("<br>", unsafe_allow_html=True) # A tiny bit of breathing room
+
+# --- Side-by-Side Download Buttons ---
+    st.markdown("<br>", unsafe_allow_html=True) # A tiny bit of breathing room
+    btn_col2, btn_col1 = st.columns(2)
+
+    with btn_col1:
+        # Changed to sal_df
+        csv_saliency = sal_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Download Importance Map (CSV)",
+            data=csv_saliency,
+            file_name=f"{gene_id}_saliency_impact.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+
+    with btn_col2:
+        # Changed to bar_df
+        csv_bar = bar_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Download Prediction Probs (CSV)",
+            data=csv_bar,
+            file_name=f"{gene_id}_prediction_probs.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
 
 
 # ── VCF file uploader ─────────────────────────────────────────────────────────
@@ -284,15 +343,66 @@ def show_mutation_results(
 def show_vcf_input():
     _section("📂 Upload VCF File")
     upload_col, _ = st.columns([0.35, 0.65])
+    
     with upload_col:
-        st.caption(
-            "Upload a gzip-compressed VCF file (.gz). "
-            "Pre-filter to your genes of interest for faster processing."
-        )
-        vcf_file = st.file_uploader(
-            label="VCF file (.gz)",
-            accept_multiple_files=False,
-            type=[".gz"],
-            help="Variant Call Format file, gzip-compressed.",
-        )
+        # --- NEW: Tutorial Shortcut for VCF Mode ---
+        if st.session_state.get("tutorial_vcf_active"):
+            st.info("**Tutorial VCF Mode Active:** The demo file is pre-loaded. Check the **Tutorial** tab for full context.", icon="ℹ️")
+            if st.button("❌ Clear VCF Data", key="mut_clear_vcf"):
+                st.session_state.tutorial_vcf_active = False
+                st.rerun()
+        else:
+            st.info("**Tutorial Shortcut:** See the **Tutorial** tab for context, or load the demo VCF directly.", icon="ℹ️")
+            if st.button("Load Tutorial VCF (RAP2.12)", key="mut_load_vcf"):
+                st.session_state.tutorial_vcf_active = True
+                st.session_state.tutorial_vcf_gene = "AT1G53910"
+                st.rerun()
+            st.markdown("---")
+        # -------------------------------------------
+
+        # Only show the physical uploader if the tutorial isn't active
+        if not st.session_state.get("tutorial_vcf_active"):
+            st.caption(
+                "Upload a gzip-compressed VCF file (.gz). "
+                "Pre-filter to your genes of interest for faster processing."
+            )
+            vcf_file = st.file_uploader(
+                label="VCF file (.gz)",
+                accept_multiple_files=False,
+                type=[".gz"],
+                help="Variant Call Format file, gzip-compressed.",
+            )
+        else:
+            vcf_file = None # Handled by app.py injection!
+
+    return vcf_file
+
+
+# --- Tutorial Injection for VCF ---
+    if st.session_state.get("tutorial_vcf_active"):
+        import io
+        import os
+
+        file_path = "tutorial/File_3_deepCRE_tutorial_rap12-2-variant_Supplementary-file-3_dCRE_Peleketal2025.vcf.gz"
+
+        if os.path.exists(file_path):
+            with open(file_path, "rb") as f:
+                file_bytes = f.read()
+
+            # Create a perfect mock of Streamlit's UploadedFile to prevent backend crashes
+            class MockUploadedFile(io.BytesIO):
+                def __init__(self, buffer, name):
+                    super().__init__(buffer)
+                    self.name = name
+                    self.size = len(buffer)
+                    self.type = "application/gzip"
+
+            vcf_file = MockUploadedFile(file_bytes, "tutorial_variants.vcf.gz")
+
+            with upload_col:
+                st.success("✅ Tutorial VCF file injected!")
+        else:
+            with upload_col:
+                st.error(f"❌ Error: Could not find the file at `{file_path}`. Please check the spelling!")
+
     return vcf_file
