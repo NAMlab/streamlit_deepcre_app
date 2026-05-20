@@ -3,7 +3,9 @@ Copyright © 2024 Leibniz Institute of Plant Genetics and Crop Plant Research (I
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
 ## Installation
-To install required packages, run 
+The [prediction models](https://github.com/NAMlab/streamlit_deepcre_app/tree/master/models) are stored via [git lfs](https://git-lfs.com/) so make sure you have git lfs installed and set up before cloning the repository, otherwise you will only get pointer text files.
+
+Then, to install required packages after cloning, run 
 
 ```
 conda env create -f conda-env.yml
