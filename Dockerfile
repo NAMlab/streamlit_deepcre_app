@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y curl git \
 
 # Install micromamba for dependency management
 SHELL ["/bin/bash", "-c"]
-RUN wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+RUN wget -qO- https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
 RUN micromamba shell init --shell bash --root-prefix=~/.local/share/mamba
 RUN . ~/.bashrc
 
