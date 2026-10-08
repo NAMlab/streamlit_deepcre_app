@@ -1,5 +1,8 @@
 [server]
 maxUploadSize = 5000
+# The institute's reverse proxy closes WebSockets after ~15 s without traffic,
+# so ping more often than that (Streamlit also uses this as the pong timeout).
+websocketPingInterval = 10
 
 [theme]
 font='sans serif'
