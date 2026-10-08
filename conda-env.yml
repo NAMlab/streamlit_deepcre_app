@@ -9,9 +9,10 @@ dependencies:
 - pip
 - pip:
   - git+https://github.com/AvantiShri/shap.git@29d2ffab405619340419fc848de6b53e2ef0f00c
-  - altair==5.4.1
+  - altair==5.5.0
   - biopython==1.81
   - deeplift==0.6.13.0
   - numpy==1.26.4
   - pandas==2.2.3
-  - streamlit==1.37.1
+  - streamlit==1.50.0
+  - tornado==6.5.2
