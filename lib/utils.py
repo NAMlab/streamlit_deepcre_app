@@ -185,7 +185,7 @@ def dataframe_with_selections(df):#
     event = st.dataframe(df,
                          on_select='rerun',
                          selection_mode='multi-row',
-                         use_container_width=True)
+                         width="stretch")
     selection_info = event['selection']
     return df.loc[selection_info['rows']]
 

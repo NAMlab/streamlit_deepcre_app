@@ -84,4 +84,4 @@ def show_about_tab(available_genomes):
         sub_df = available_genomes.iloc[curr_idx:end_idx]
         sub_df = sub_df[['display_name', 'description']]
         sub_df.columns = ['Genome', 'Description']
-        st.dataframe(sub_df, hide_index=True, use_container_width=True)
+        st.dataframe(sub_df, hide_index=True, width="stretch")

@@ -4,7 +4,7 @@ def show_license_ref():
     # Logo of lab and link
     _, lab_logo, lab_name = st.columns([0.3, 0.4, 0.3], vertical_alignment='bottom', gap='small')
     with lab_logo:
-        st.image('images/logos.png', use_column_width=True)
+        st.image('images/logos.png', width="stretch")
         st.subheader('CONTACT US', divider='grey')
         st.write("Forschungszentrum Jülich GmbH D-52425 Jülich, Germany")
         st.markdown(

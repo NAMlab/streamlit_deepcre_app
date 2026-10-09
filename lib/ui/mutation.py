@@ -323,7 +323,7 @@ def show_mutation_results(
             data=csv_saliency,
             file_name=f"{gene_id}_saliency_impact.csv",
             mime="text/csv",
-            use_container_width=True
+            width="stretch"
         )
 
     with btn_col2:
@@ -334,7 +334,7 @@ def show_mutation_results(
             data=csv_bar,
             file_name=f"{gene_id}_prediction_probs.csv",
             mime="text/csv",
-            use_container_width=True
+            width="stretch"
         )
 
 

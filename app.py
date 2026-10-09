@@ -298,7 +298,7 @@ def _handle_vcf_mutation(gene_ids, gene_starts, gene_ends, gene_chroms, gene_str
     selection = dataframe_with_selections(df=snps_cis)
 
     st.markdown('<div class="section-header">Selected SNPs</div>', unsafe_allow_html=True)
-    st.dataframe(selection, use_container_width=True)
+    st.dataframe(selection, width="stretch")
 
     if selection.empty:
         return

@@ -58,7 +58,7 @@ def show_predictions_tab(
         st.dataframe(
             predictions,
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
             column_config={
                 "Probability": st.column_config.ProgressColumn(
                     "P(high expression)", min_value=0, max_value=1, format="%.3f"
