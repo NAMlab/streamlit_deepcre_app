@@ -4,7 +4,7 @@ import pandas as pd
 import tensorflow as tf
 import streamlit as st
 
-from lib.utils import one_hot_to_dna, one_hot_encode, dataframe_with_selections
+from lib.utils import one_hot_to_dna, one_hot_encode, dataframe_with_selections, normalize_sequence
 from lib.ui.about import show_about_tab
 from lib.ui.sidebar import show_sidebar
 from lib.ui.predictions import show_predictions_tab
@@ -204,12 +204,31 @@ def _handle_manual_mutation(gene_ids, gene_starts, gene_ends, x, progress_marker
         gene_id, start, end, seq, utr_len, central_pad_size
     )
 
+    # Guard: the model only accepts sequences of exactly the original length.
+    st.session_state.mutated_seq, _ = normalize_sequence(st.session_state.mutated_seq, len(seq))
+
     seqs = np.array([one_hot_encode(s) for s in [seq, st.session_state.mutated_seq]])
     validateMutationSequences(seqs)
 
-    progress_marker.update(label="Applying mutations…")
-    preds = getMutationPredictions()
-    actual_scores, pred_probs, _ = getMutationScores(gene_id)
+    if progress_marker is not None:
+        progress_marker.update(label="Applying mutations…")
+    try:
+        preds = getMutationPredictions()
+        actual_scores, pred_probs, _ = getMutationScores(gene_id)
+    except Exception as exc:
+        # Never let a model/explainer failure take the whole app down.
+        st.error("The model could not process this mutated sequence. "
+                 "Details are shown below; you can reset the sequence and try again.", icon="🚫")
+        st.exception(exc)
+
+        def _reset_after_error():
+            st.session_state.mutated_seq = seq
+            st.session_state.sub_seq_to_mutate = seq[mut_reg_start:mut_reg_end]
+            st.session_state.mutation_predictions = None
+            st.session_state.mutation_scores = None
+
+        st.button("↺ Reset sequence", type="primary", on_click=_reset_after_error, key="reset_after_error")
+        return
 
     show_mutation_results(
         gene_id, pred_probs, actual_scores, seq,
@@ -238,7 +257,8 @@ def _handle_vcf_mutation(gene_ids, gene_starts, gene_ends, gene_chroms, gene_str
     if vcf_file is None:
         return
 
-    progress_marker.update(label="Processing VCF file…")
+    if progress_marker is not None:
+        progress_marker.update(label="Processing VCF file…")
     vcf_df = getVcfContent(vcf_file, gene_starts, gene_ends, gene_chroms)
 
     # --- NEW: Layout simplified (removed the 50-SNP head table and split columns) ---
@@ -332,18 +352,52 @@ def _handle_vcf_mutation(gene_ids, gene_starts, gene_ends, gene_chroms, gene_str
                     rel = snp_pos - prom_start - 1 if snp_pos != prom_start else 0
                     mapped = 3020 - rel - 1
 
+            # Skip variants that fall outside the 3020 bp model window instead of
+            # corrupting the sequence length (which would crash the model input).
+            if not 0 <= mapped < len(mut_cis_seq):
+                continue
+
             mut_markers.append((mapped, "*", f"SNP: {ref_allele} → {alt_allele}"))
-            base = alt_allele if snp_strand == "+" else complements[alt_allele]
+            alt_upper = str(alt_allele).upper()
+            base = alt_upper if snp_strand == "+" else complements.get(alt_upper, "N")
+            if base not in "ACGTN":
+                base = "N"
             mut_cis_seq = mut_cis_seq[:mapped] + base + mut_cis_seq[mapped + 1:]
 
+        mut_cis_seq, _ = normalize_sequence(mut_cis_seq, len(seq))
         seqs = np.array([one_hot_encode(s) for s in [st.session_state["cis_seq"], mut_cis_seq]])
         validateMutationSequences(seqs)
-        preds = getMutationPredictions()
-        actual_scores, pred_probs, _ = getMutationScores(gene_id)
+        try:
+            preds = getMutationPredictions()
+            actual_scores, pred_probs, _ = getMutationScores(gene_id)
+        except Exception as exc:
+            st.error("The model could not process this mutated sequence. Details are shown below.", icon="🚫")
+            st.exception(exc)
+            return
         show_mutation_results(
             gene_id, pred_probs, actual_scores, seq,
             utr_len, central_pad_size, None, None, mut_markers,
         )
+
+@st.fragment
+def _mutation_tab(gene_ids, gene_starts, gene_ends, gene_chroms, gene_strands, x) -> None:
+    """Mutation tab as a fragment.
+
+    Widgets inside a fragment (region radio, slider, text box, Mutate, SNP table)
+    only re-run this block instead of the whole script, so the Predictions and
+    Explanation charts are no longer rebuilt and re-sent on every interaction.
+    The st.status object lives outside the fragment, so it is not passed in.
+    """
+    mutate_analysis_type = choose_analysis_type()
+    if mutate_analysis_type == "**manual**":
+        _handle_manual_mutation(gene_ids, gene_starts, gene_ends, x, None)
+    else:
+        _handle_vcf_mutation(
+            gene_ids, gene_starts, gene_ends,
+            gene_chroms, gene_strands, x, None,
+        )
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -436,14 +490,7 @@ def main() -> None:
 
     # ── Mutations ─────────────────────────────────────────────────────────────
     with mutations_tab:
-        mutate_analysis_type = choose_analysis_type()
-        if mutate_analysis_type == "**manual**":
-            _handle_manual_mutation(gene_ids, gene_starts, gene_ends, x, progress_marker)
-        else:
-            _handle_vcf_mutation(
-                gene_ids, gene_starts, gene_ends,
-                gene_chroms, gene_strands, x, progress_marker,
-            )
+        _mutation_tab(gene_ids, gene_starts, gene_ends, gene_chroms, gene_strands, x)
 
     progress_marker.update(state="complete", label="Done ✓")
 

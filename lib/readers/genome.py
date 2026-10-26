@@ -3,7 +3,9 @@ from io import StringIO, BytesIO
 import streamlit as st
 import gzip
 
-@st.cache_data(max_entries=5)
+# cache_resource keeps the parsed genome in memory as-is; cache_data would
+# pickle and copy the whole genome on every cache hit, which is very slow.
+@st.cache_resource(max_entries=5, show_spinner=False)
 def read_genome(genome_file):
     if isinstance(genome_file, st.runtime.uploaded_file_manager.UploadedFile):
         if genome_file.name.endswith('.gz'):

@@ -154,7 +154,7 @@ def show_saliency_tab(
     })
 
     text_y = avg_df["Saliency Score"].max() + avg_df["Saliency Score"].mean()
-    op     = _opacity_param("avg_opacity")
+    op     = _opacity_param("opacity")
 
     with avg_line_col:
         line = _build_line_chart(
@@ -181,11 +181,11 @@ def show_saliency_tab(
             (actual_scores_low,  p_l, g_l, "Low"),
         ]:
             if not np.isnan(probs[0]):
-                for i in range(scores.shape[0]):
-                    rows["Expression"].append(label)
-                    rows["Sum Saliency Score"].append(scores[i].sum())
-                    rows["P(high expr.)"].append(probs[i])
-                    rows["Gene ID"].append(gids[i])
+                sums = scores.sum(axis=(1, 2))  # vectorised: one sum per gene
+                rows["Expression"].extend([label] * len(sums))
+                rows["Sum Saliency Score"].extend(sums.tolist())
+                rows["P(high expr.)"].extend(list(probs))
+                rows["Gene ID"].extend(list(gids))
 
         scat_df = pd.DataFrame(rows)
         scat_df = scat_df.rename(columns={"P(high expr.)": "Probability of high expression"})
@@ -217,7 +217,7 @@ def show_saliency_tab(
 
     with base_line_col:
         for label, df in df_by_class.items():
-            op_base = _opacity_param(f"base_{label.lower()}_opacity")
+            op_base = _opacity_param(f"opacity")
             text_y_base = y_max + abs(y_max - y_min) * 0.05
 
             line = _build_line_chart(

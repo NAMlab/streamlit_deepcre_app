@@ -1,3 +1,4 @@
+import re
 import numpy as np
 import pandas as pd
 from typing import Any
@@ -33,6 +34,38 @@ def one_hot_to_dna(one_hot):
     one_hot_inds[batch_inds, seq_inds] = base_inds
     seq_array = bases[one_hot_inds]
     return ["".join(seq) for seq in seq_array]
+
+
+def normalize_sequence(seq: str, length: int, pad_char: str = "N"):
+    """Force a user-edited DNA string to exactly `length` characters.
+
+    Whitespace/newlines are removed, letters are upper-cased, any character
+    that is not A/C/G/T/N becomes N, and the result is right-padded with
+    `pad_char` (or truncated) to `length`. This keeps the one-hot input of the
+    model at its fixed size no matter how the sequence was edited.
+
+    Returns (normalized_sequence, notes) where notes is a list of
+    human-readable descriptions of what had to be corrected (empty if nothing).
+    """
+    notes = []
+    cleaned = "".join(str(seq).split()).upper()
+    if len(cleaned) != len(str(seq)):
+        notes.append("whitespace/line breaks were removed")
+
+    sanitized = re.sub(r"[^ACGTN]", "N", cleaned)
+    if sanitized != cleaned:
+        notes.append("characters other than A, C, G, T, N were replaced by N")
+
+    n = len(sanitized)
+    if n < length:
+        sanitized += pad_char * (length - n)
+        notes.append(f"sequence was {n} bp but {length} bp are required, so it was padded with "
+                     f"{length - n} '{pad_char}' at the end")
+    elif n > length:
+        sanitized = sanitized[:length]
+        notes.append(f"sequence was {n} bp but only {length} bp fit, so the last {n - length} bp were cut off")
+
+    return sanitized, notes
 
 
 def compute_gc(enc_seq):

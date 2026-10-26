@@ -6,7 +6,9 @@ import re
 from io import StringIO, BytesIO
 import pandas as pd
 
-@st.cache_data(max_entries=5)
+# cache_resource avoids pickling/copying the annotation table on every cache hit.
+# Callers must treat the returned DataFrame as read-only.
+@st.cache_resource(max_entries=5, show_spinner=False)
 def read_gene_models(annotation_file):
     if isinstance(annotation_file, st.runtime.uploaded_file_manager.UploadedFile):
         format = 'gtf' if annotation_file.name.endswith(('gtf', 'gtf.gz')) else 'gff3'

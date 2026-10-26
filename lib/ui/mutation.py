@@ -1,3 +1,4 @@
+import hashlib
 import itertools
 from datetime import datetime
 from lib.ui.tutorial import load_tutorial_fasta
@@ -5,6 +6,7 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
+from lib.utils import normalize_sequence
 
 # ── Shared style helpers ──────────────────────────────────────────────────────
 
@@ -17,6 +19,11 @@ def _section(label: str) -> None:
             </div>""",
         unsafe_allow_html=True,
     )
+
+
+def _sentence(text: str) -> str:
+    """Upper-case only the first letter (the built-in capitalize would lower-case the 'N' padding base)."""
+    return text[:1].upper() + text[1:]
 
 
 def _chart_title(title: str, subtitle: str = "") -> alt.TitleParams:
@@ -111,6 +118,7 @@ def show_manual_mutation(gene_id: str, start: int, end: int,
     if "current_gene" not in st.session_state or st.session_state.current_gene != gene_id:
         st.session_state.current_gene = gene_id
         st.session_state.mutated_seq  = seq
+        st.session_state.mut_notice = None
 
     _section("Select Region to Mutate")
     sel_region = st.radio(
@@ -161,34 +169,64 @@ def show_manual_mutation(gene_id: str, start: int, end: int,
     if "sub_seq_to_mutate" not in st.session_state or st.session_state.get("last_mut_coords") != (mut_reg_start, mut_reg_end):
         st.session_state.sub_seq_to_mutate = sub_seq
         st.session_state.last_mut_coords = (mut_reg_start, mut_reg_end)
+        st.session_state.mut_notice = None  # a different region/range: old notice no longer applies
 
     if st.session_state.get("tutorial_mutation_active"):
         st.session_state.sub_seq_to_mutate = st.session_state.tutorial_mut_seq
         st.session_state.tutorial_mutation_active = False
 
-    def apply_mutation():
-        edited = st.session_state.sub_seq_to_mutate
-        if len(edited) != mut_reg_end - mut_reg_start:
-            edited += "N" * (mut_reg_end - mut_reg_start - len(edited))
+    region_len = mut_reg_end - mut_reg_start
+
+    def _splice(edited_text):
+        """Write the edited region back, always keeping the full sequence at its original length."""
+        fixed, _ = normalize_sequence(edited_text, region_len)
         full = st.session_state.mutated_seq
-        st.session_state.mutated_seq = full[:mut_reg_start] + edited + full[mut_reg_end:]
+        merged = full[:mut_reg_start] + fixed + full[mut_reg_end:]
+        # Final safety net: the model needs exactly len(seq) bases.
+        merged, _ = normalize_sequence(merged, len(seq))
+        return merged, fixed
+
+    def apply_mutation():
+        edited_text = st.session_state.sub_seq_to_mutate
+        # Remember what had to be corrected: the box is padded below, so by the next
+        # run the text already has the right length and would otherwise show no hint.
+        _, notes = normalize_sequence(edited_text, region_len)
+        st.session_state.mut_notice = (
+            f"The {sel_region} region must be exactly {region_len} bp. "
+            + _sentence("; ".join(notes)) + "."
+        ) if notes else None
+        merged, fixed = _splice(edited_text)
+        st.session_state.mutated_seq = merged
+        # Show the corrected (e.g. padded) text in the box instead of the short one.
+        st.session_state.sub_seq_to_mutate = fixed
 
     with seq_col:
         _section(f"Edit {sel_region} ({mut_reg_start}–{mut_reg_end})")
         edited_seq = st.text_area(
             label=f"{sel_region} sequence",
             value=st.session_state.sub_seq_to_mutate, # Uses our synced state
-            max_chars=len(st.session_state.mutated_seq[mut_reg_start:mut_reg_end]),
+            max_chars=region_len,
             height=80,
             key="sub_seq_to_mutate",
             label_visibility="collapsed",
             on_change=apply_mutation,
         )
-    # ---------------------------------------------------------
+
+        # Tell the user (instead of crashing) when the edit does not match the required length.
+        _, length_notes = normalize_sequence(edited_seq, region_len)
+        if length_notes:
+            st.warning(
+                f"The {sel_region} region must be exactly {region_len} bp. "
+                + _sentence("; ".join(length_notes)) + ".",
+                icon="⚠️",
+            )
+        elif st.session_state.get("mut_notice"):
+            # The box was already corrected by the callback; still tell the user what happened.
+            st.warning(st.session_state.mut_notice + " The corrected sequence is shown above.", icon="⚠️")
 
         if st.button("Mutate", type="primary"):
-            st.session_state.mutated_seq = st.session_state.mutated_seq[:mut_reg_start] + edited_seq + st.session_state.mutated_seq[mut_reg_end:]
-            
+            st.session_state.mutated_seq, _ = _splice(edited_seq)
+
     return mut_reg_start, mut_reg_end
 
 
@@ -256,9 +294,14 @@ def show_mutation_results(
     )
 
     rule = (
-        alt.Chart(pd.DataFrame({"y": [0]}))
-        .mark_rule(strokeDash=[3, 3], color="black")
-        .encode(y="y:Q")
+        alt.Chart(pd.DataFrame({"Saliency Score": [0]}))
+        .mark_rule(
+            strokeDash=[3, 3],
+            color="black",
+        )
+        .encode(
+            y=alt.Y("Saliency Score:Q")
+        )
     )
 
     spans  = _genomic_spans(utr_len, central_pad_size)
@@ -283,11 +326,18 @@ def show_mutation_results(
     _section("Mutation Results")
     bar_col, sal_col = st.columns([0.18, 0.82])
 
+    # A key that changes with the results makes Streamlit build a fresh chart after each
+    # mutation. Without it the chart is updated in place and may not repaint until hovered.
+    result_key = hashlib.md5(
+        np.asarray(actual_scores[1]).tobytes() + np.asarray(pred_probs, dtype=np.float64).tobytes()
+        + str(mut_markers).encode()
+    ).hexdigest()[:12]
+
     with bar_col:
-        st.altair_chart(bar_chart, use_container_width=True, theme=None)
+        st.altair_chart(bar_chart, use_container_width=True, theme=None, key=f"mut_bar_{result_key}")
 
     with sal_col:
-        st.altair_chart(alt.layer(*layers), use_container_width=True, theme=None)
+        st.altair_chart(alt.layer(*layers), use_container_width=True, theme=None, key=f"mut_sal_{result_key}")
 
         delta = float(pred_probs[0] - pred_probs[1])
         if delta != 0:
@@ -299,6 +349,7 @@ def show_mutation_results(
             )
 
     def _reset():
+        st.session_state.mut_notice = None
         st.session_state.mutated_seq = seq
         if mut_reg_start is not None and mut_reg_end is not None:
             st.session_state.sub_seq_to_mutate = seq[mut_reg_start:mut_reg_end]

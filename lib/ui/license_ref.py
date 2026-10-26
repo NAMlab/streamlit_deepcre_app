@@ -8,7 +8,14 @@ def show_license_ref():
         st.subheader('CONTACT US', divider='grey')
         st.write("Forschungszentrum Jülich GmbH D-52425 Jülich, Germany")
         st.markdown(
-            f"Lab: <a style='text-decoration:none; text-align: center; color:#FF4BAB;' href=https://www.szymanskilab.com/>SZYMANSKI LAB</a>",
+            """
+            Lab: <a href="https://www.szymanskilab.com/"
+            style="text-decoration: none; color: #0F42C0;">SZYMANSKI LAB</a>
+            <br>
+            If you encounter any problems, please open an issue on
+            <a href="https://github.com/NAMlab/streamlit_deepcre_app"
+            style="text-decoration: none; color: #0F42C0;">GitHub</a>.
+            """,
             unsafe_allow_html=True,
         )
         st.write(f"email: :red[j.szymanski@fz-juelich.de]")
