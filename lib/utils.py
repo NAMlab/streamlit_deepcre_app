@@ -72,6 +72,15 @@ def compute_gc(enc_seq):
     c_count = np.where(enc_seq[:, [1, 2]] == 1)[0]
     return len(c_count)/enc_seq.shape[0]
 
+
+def _extract(chrom_seq, a, b):
+    """One-hot window [a, b) of a chromosome, N-padded where it runs off either end."""
+    L = len(chrom_seq)
+    left, right = max(0, -a), max(0, b - L)
+    core = one_hot_encode(str(chrom_seq[max(a, 0):min(b, L)].seq))
+    return np.concatenate([np.zeros((left, 4)), core, np.zeros((right, 4))])
+
+
 def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, use_example=False):
     genome = read_genome(genome) 
     gene_models = read_gene_models(annot)
@@ -102,8 +111,9 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, use
         prom_start, prom_end = start - upstream, start + extractable_downstream
         term_start, term_end = end - extractable_downstream, end + upstream
 
-        promoter = one_hot_encode(str(genome[chrom][prom_start:prom_end].seq))
-        terminator = one_hot_encode(str(genome[chrom][term_start:term_end].seq))
+        promoter = _extract(genome[chrom], prom_start, prom_end)
+        terminator = _extract(genome[chrom], term_start, term_end)
+
         extracted_size = promoter.shape[0] + terminator.shape[0]
         central_pad_size = expected_final_size - extracted_size
 
