@@ -343,7 +343,7 @@ def show_mutation_results(
         if delta != 0:
             direction = "increased" if delta < 0 else "decreased"
             st.info(
-                f"**Δ probability = {delta:+.3f}** — Mutation {direction} the predicted "
+                f"**Δ ( normal - mutated ) probability = {delta:+.3f}** — Mutation {direction} the predicted "
                 f"probability of high expression by **{abs(delta):.3f}**.",
                 icon="📉" if delta > 0 else "📈",
             )
