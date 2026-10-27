@@ -35,13 +35,23 @@ def _chart_title(title: str, subtitle: str = "") -> alt.TitleParams:
 
 # ── Genomic region spans (reusable) ──────────────────────────────────────────
 
+def _inline(df: pd.DataFrame) -> alt.Data:
+    """Embed a (small) DataFrame directly in the layer's spec.
+
+    Passing several DataFrames to a layered chart makes Altair register one named
+    dataset per layer. Streamlit then fails to repaint the chart when it is replaced
+    by a new one (axes only, marks appear on hover). Inline data avoids that.
+    """
+    return alt.Data(values=df.to_dict("records"))
+
+
 def _region_span(x1: int, x2: int, color: str, tip: str) -> alt.Chart:
     return (
-        alt.Chart(pd.DataFrame({"x1": [x1], "x2": [x2]}))
+        alt.Chart(_inline(pd.DataFrame({"x1": [x1], "x2": [x2]})))
         .mark_rect(opacity=0.1)
         .encode(
-            x=alt.X("x1", scale=alt.Scale(domain=[1, 3021]), title="Nucleotide Position"),
-            x2="x2",
+            x=alt.X("x1:Q", scale=alt.Scale(domain=[1, 3021]), title="Nucleotide Position"),
+            x2="x2:Q",
             color=alt.value(color),
             tooltip=alt.value(tip),
         )
@@ -63,13 +73,13 @@ def _annotation_layer(text_y: float) -> alt.Chart:
         (2020, text_y, "TTS", "Transcription Termination Site"),
     ], columns=["Nucleotide Position", "Saliency Score", "marker", "description"])
     return (
-        alt.Chart(df)
+        alt.Chart(_inline(df))
         .mark_text(size=13, align="center", fontWeight="bold")
         .encode(
-            x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
+            x=alt.X("Nucleotide Position:Q", scale=alt.Scale(domain=[1, 3021])),
             y=alt.Y("Saliency Score:Q"),
-            text="marker",
-            tooltip="description",
+            text="marker:N",
+            tooltip="description:N",
         )
     )
 
@@ -79,18 +89,18 @@ def _annotation_layer(text_y: float) -> alt.Chart:
 def choose_analysis_type() -> str:
     """Renders the radio button to select between manual and VCF mutation modes."""
     st.subheader("Analysis Mode")
-    
+
     mode = st.radio(
         label="Select Analysis Mode",
         options=["**manual**", "**VCF**"],
         captions=[
-            "Manually edit the CRE sequence", 
+            "Manually edit the CRE sequence",
             "Apply natural variants from a VCF file"
         ],
         label_visibility="collapsed",  # Hides the redundant label above the buttons
         key="analysis_mode_radio"
     )
-    
+
     return mode
 
 # ── Manual mutation UI ────────────────────────────────────────────────────────
@@ -107,11 +117,11 @@ def show_manual_mutation(gene_id: str, start: int, end: int,
         if st.button("Load Tutorial Sequence (OsACT1)", key="mut_load_fasta"):
             st.session_state.tutorial_mutation_active = True
             st.session_state.tutorial_mut_seq = load_tutorial_fasta("gTUR_Osativa_OsACT1_KP100426-PIG2_5UTR500BP")
-            
+
             # --- Snap the UI coordinates safely ---
             st.session_state.mut_region_selection = "gTUR"
             st.session_state.mut_coord_slider = (1001, 1500)
-            
+
             st.rerun()
 
     # Initialise session state for this gene
@@ -294,7 +304,7 @@ def show_mutation_results(
     )
 
     rule = (
-        alt.Chart(pd.DataFrame({"Saliency Score": [0]}))
+        alt.Chart(_inline(pd.DataFrame({"Saliency Score": [0]})))
         .mark_rule(
             strokeDash=[3, 3],
             color="black",
@@ -313,11 +323,11 @@ def show_mutation_results(
         snp_df = pd.DataFrame(mut_markers, columns=["Nucleotide Position", "marker", "description"])
         snp_df["Saliency Score"] = text_y
         snp_layer = (
-            alt.Chart(snp_df)
+            alt.Chart(_inline(snp_df))
             .mark_rule(strokeDash=[2, 2], color="gray", size=2)
             .encode(
-                x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
-                tooltip="description",
+                x=alt.X("Nucleotide Position:Q", scale=alt.Scale(domain=[1, 3021])),
+                tooltip="description:N",
             )
         )
         layers.insert(-1, snp_layer)
@@ -356,7 +366,7 @@ def show_mutation_results(
 
     if mut_markers is None:
         st.button("↺ Reset sequence", type="primary", on_click=_reset)
-    
+
 
 
 
@@ -394,7 +404,7 @@ def show_mutation_results(
 def show_vcf_input():
     _section("📂 Upload VCF File")
     upload_col, _ = st.columns([0.35, 0.65])
-    
+
     with upload_col:
         # --- NEW: Tutorial Shortcut for VCF Mode ---
         if st.session_state.get("tutorial_vcf_active"):
