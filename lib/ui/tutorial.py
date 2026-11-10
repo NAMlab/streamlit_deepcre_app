@@ -81,6 +81,14 @@ def show_tutorial_tab():
             st.success(notice)
 
         st.write("**Reproducing the deepCRE results sections of the gene promoter characterization**")
+        st.info(
+            "**While the toolkit is working:** the running indicator in the upper right "
+            "corner of the page shows that deepCRE is computing. Predictions and "
+            "importance scores take from a few seconds to a few minutes, and the page "
+            "stays quiet until they are finished. If a step looks stuck or a figure does "
+            "not appear, press **R** or reload the page — the app reruns and keeps your "
+            "input."
+        )
         st.write("""
         The aim of the Tutorial is to familiarize the users with its functions and potential applications.
         The code for this toolkit: https://github.com/NAMlab/streamlit_deepcre_app
@@ -201,8 +209,8 @@ def show_tutorial_tab():
         averaged saliency map.
         """)
         st.write("""
-        The users can access saliency maps by clicking on the Tab “Saliency Maps”. This is how the user can produce figure
-        2e and 2f, switching between the At(leaf) and At(root) models.
+        The users can access saliency maps by clicking on the tab “Explanation”. Switching between the
+        At(leaf) and At(root) models shows how the importance profile differs between the two tissues.
         """)
         st.image('images/Slide4.jpg', width="stretch")
 
@@ -237,8 +245,8 @@ def show_tutorial_tab():
         """)
         st.image('images/Slide6.jpg', width="stretch")
         st.write("""
-        The coordinates can be changed that will be on display within the Text editing window after clicking on Submit. 
-        After the sequence has been edited, changes are confirmed by clicking onto Mutate. \n
+        The coordinates that are shown in the text editing window are changed by clicking “Apply”.
+        After the sequence has been edited, the change is confirmed by clicking “Mutate”. \n
         The coordinates should be set to  1001-1500 after selecting the 5’UTR (gTUR) region. Please open the 
         Tutorial File 2 and copy the sequence of the fasta to the gTUR section:
         """)
@@ -277,15 +285,15 @@ def show_tutorial_tab():
 
         st.write("""
         Paste this sequence into the target window for text editing of the deepCRE toolkit Mutation mode. 
-        After clicking onto Mutate new probabilities and saliency maps should be generated. The exchange of the gTUR 
-        should result in the generation of figure 3g and 3h.
+        After clicking “Mutate”, new probabilities and saliency maps are generated. The exchange of the
+        gTUR lowers the predicted probability and changes the importance profile over the swapped region.
         """)
         st.image('images/Slide7.jpg', width="stretch")
 
         st.write("""
         The change in predicted probabilities is displayed below the plots. The exact predicted probability for the 
         sequence before (grey) and after (cyan) editing can be read out by mouse-over the barplot. To reproduce the 
-        results shown in the deepCRE toolkit manuscript, sequences in the supplementary file 2 were trimmed to sizes that
+        results reproducibly, the sequences in Tutorial File 2 were trimmed to sizes that
         can be copied to the webtool. To enable cross evaluation, the different models can be selected without the edited 
         sequence being changed. This accounts also for changes in the other selectable regions of interest. 
         """)
@@ -327,7 +335,7 @@ def show_tutorial_tab():
         This will generate a plot as output showing the change in predicted probability and the effect on single nucleotide
         importances. The dotted grey lines indicate the position of selected variants within the gene flanking regions. 
         The sequence with the lowest predicted probability belongs to the A. thaliana ecotype I-Cat0. These are the variants
-        found for this ecotype compared to A. thaliana col-0. The list of variants is provided as supplementary table 3.
+        found for this ecotype compared to A. thaliana Col-0. The list of variants is shown in the table below.
         Please select the following SNPs to generate a sequence similar to the I-Cat0 haplotype. 
         """)
         if os.path.exists('data/Tutorial_table3_icat.csv'):
@@ -342,5 +350,6 @@ def show_tutorial_tab():
         """)
         st.image('images/Slide12.jpg', width="stretch")
         st.write("""
-        The resulting plots should be similar to Figure 4b,c and d.
+        The resulting plots show the predicted probability of the reference and of the variant sequence
+        side by side, the importance profile of both, and the positions of the selected variants.
         """)

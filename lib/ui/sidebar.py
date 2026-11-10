@@ -263,6 +263,26 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
     _section("deepCRE Model")
     selected_model = _model_picker(available_models)
 
+    # ── While it is working ───────────────────────────────────────────────────
+    # Predictions and DeepSHAP take seconds to minutes and the page looks idle
+    # meanwhile, which reads as a hang. Say where the activity indicator is, and
+    # that a rerun is the first thing to try if the page does get stuck.
+    st.sidebar.markdown(
+        """
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:1.2rem 0 0.4rem 0;">
+        <div style="font-size:0.72rem;color:#6b7280;line-height:1.45;">
+            <b>While deepCRE is working</b><br>
+            The running indicator in the <b>upper right corner</b> shows that the
+            app is computing. Predictions and importance scores can take from a
+            few seconds to a few minutes, depending on how many genes you
+            selected — the page stays quiet until they are done.<br>
+            If something looks stuck or a figure does not appear, press
+            <b>R</b> or reload the page: the app reruns and keeps your input.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # ── Footer ────────────────────────────────────────────────────────────────
     st.sidebar.markdown(
         """
