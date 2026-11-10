@@ -224,14 +224,17 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
 
     # Typing one or a few gene IDs is the common case -- looking at a single
     # gene of interest -- and writing a file for it is needless work. The
-    # placeholder names a gene that exists in the tutorial genome, the Rubisco
-    # small subunit RBCS1A, so the box can be tried without looking anything up.
+    # placeholder is ACT2, a constitutively high-expressed housekeeping gene that
+    # every served Arabidopsis model predicts high (0.97-1.00 on leaf and root,
+    # both model generations), so the box can be tried without looking anything
+    # up and the first result a user sees is a correct one.
     typed = st.sidebar.text_input(
         label="Gene IDs",
-        placeholder="AT1G67090",
+        placeholder="AT3G18780",
         key="sidebar_typed_genes",
         help="Type one or more gene IDs, separated by comma, space or new line. "
-             "Example: AT1G67090 (RBCS1A, Rubisco small subunit 1A, A. thaliana). "
+             "Example: AT3G18780 (ACT2, actin 2, A. thaliana) -- constitutively "
+             "expressed and predicted high by every Arabidopsis model. "
              "An uploaded file takes precedence over this box.",
     )
     typed_genes = [g.strip() for g in re.split(r"[,\s;]+", typed or "") if g.strip()]
