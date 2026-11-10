@@ -224,17 +224,19 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
 
     # Typing one or a few gene IDs is the common case -- looking at a single
     # gene of interest -- and writing a file for it is needless work. The
-    # placeholder is ACT2, a constitutively high-expressed housekeeping gene that
-    # every served Arabidopsis model predicts high (0.97-1.00 on leaf and root,
-    # both model generations), so the box can be tried without looking anything
-    # up and the first result a user sees is a correct one.
+    # placeholder shows two constitutively high-expressed housekeeping genes,
+    # ACT2 and UBQ10, which every served Arabidopsis model predicts high
+    # (0.970-0.999 on leaf and root, both model generations). It doubles as the
+    # syntax example for several IDs, and the first result a user sees is a
+    # correct one.
     typed = st.sidebar.text_input(
         label="Gene IDs",
-        placeholder="AT3G18780",
+        placeholder="AT3G18780, AT4G05320",
         key="sidebar_typed_genes",
         help="Type one or more gene IDs, separated by comma, space or new line. "
-             "Example: AT3G18780 (ACT2, actin 2, A. thaliana) -- constitutively "
-             "expressed and predicted high by every Arabidopsis model. "
+             "Examples: AT3G18780 (ACT2, actin 2) and AT4G05320 (UBQ10, "
+             "polyubiquitin 10) in A. thaliana -- constitutively expressed and "
+             "predicted high by every Arabidopsis model. "
              "An uploaded file takes precedence over this box.",
     )
     typed_genes = [g.strip() for g in re.split(r"[,\s;]+", typed or "") if g.strip()]
