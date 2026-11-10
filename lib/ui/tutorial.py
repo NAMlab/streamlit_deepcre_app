@@ -4,6 +4,12 @@ import zipfile
 import streamlit as st
 import pandas as pd
 
+from lib.ui.sidebar import request_widget_state
+
+# The sidebar entry the tutorial works with. If a deployment does not serve this
+# genome the request is ignored and the sidebar keeps the user's choice.
+TUTORIAL_ORGANISM = "Arabidopsis thaliana (TAIR10)"
+
 # ── Helper Functions ─────────────────────────────────────────────────────────
 
 def get_tutorial_zip():
@@ -67,6 +73,13 @@ def show_tutorial_tab():
         with tutorial_header:
             st.subheader("Tutorial on the deepCRE toolkit:")
             
+        # The "Load …" buttons below rerun the whole app so that the widgets they
+        # drive pick the new values up. A rerun clears any message printed before
+        # it, so the message is carried across in session state and shown here.
+        notice = st.session_state.pop("tutorial_notice", None)
+        if notice:
+            st.success(notice)
+
         st.write("**Reproducing the deepCRE results sections of the gene promoter characterization**")
         st.write("""
         The aim of the Tutorial is to familiarize the users with its functions and potential applications.
@@ -121,9 +134,17 @@ def show_tutorial_tab():
         if st.button("Load Tutorial Genes & Set Model", type="primary"):
             st.session_state.tutorial_active = True
             st.session_state.tutorial_genes = load_tutorial_genes()
-            st.session_state.tutorial_model = "Arabidopsis_thaliana_leaf"
-            st.success("✅ Tutorial data loaded! Click the **Predictions** tab above to see the results.")
-            
+            # Seed the sidebar widgets instead of overriding them downstream, so
+            # the user can still change the model from the sidebar afterwards —
+            # which is exactly what step 2 of this tutorial asks them to do.
+            request_widget_state(sidebar_model="Arabidopsis_thaliana_leaf",
+                                 sidebar_organism=TUTORIAL_ORGANISM)
+            st.session_state.tutorial_notice = (
+                "Tutorial gene list loaded and the model set to Arabidopsis_thaliana_leaf. "
+                "Open the **Predictions** tab to see the results."
+            )
+            st.rerun()
+
         if st.session_state.get("tutorial_active"):
             if st.button("❌ Clear Tutorial Data", type="secondary", key="clear_genes_btn"):
                 st.session_state.tutorial_active = False
@@ -230,14 +251,19 @@ def show_tutorial_tab():
         if st.button("Load OsACT1 gTUR Sequence into Mutation Tab", type="primary"):
             st.session_state.tutorial_mutation_active = True
             st.session_state.tutorial_mut_seq = fasta_seq
-            
-            # Set the exact UI state for the Mutation tab
-            st.session_state.analysis_mode_radio = "**manual**"
-            st.session_state.mut_region_selection = "gTUR"
-            st.session_state.mut_coord_slider = (1001, 1500)
-            
-            st.success("✅ Sequence loaded! Click the **Mutation** tab above, ensure gene **AT1G67090** is selected, and your sequence will be ready in the text box.")
-            
+
+            # Set the exact UI state for the Mutation tab. The Mutation tab is a
+            # fragment, so it only picks these up on a full rerun — hence the
+            # queue and the st.rerun() below.
+            request_widget_state(analysis_mode_radio="**manual**",
+                                 mut_region_selection="gTUR",
+                                 mut_coord_slider=(1001, 1500))
+            st.session_state.tutorial_notice = (
+                "OsACT1 gTUR sequence loaded and applied. Open the **Mutation** tab "
+                "with gene **AT1G67090** selected to see the result."
+            )
+            st.rerun()
+
         if st.session_state.get("tutorial_mutation_active"):
             if st.button("❌ Clear Mutation Data", type="secondary", key="clear_mut_btn"):
                 st.session_state.tutorial_mutation_active = False
@@ -272,12 +298,13 @@ def show_tutorial_tab():
         st.markdown("**Try it out instantly:**")
         if st.button("Load VCF File & Switch to RAP2.12", type="primary"):
             st.session_state.tutorial_vcf_active = True
-            st.session_state.analysis_mode_radio = "**VCF**"
-            st.session_state.tutorial_vcf_gene = "AT1G53910" 
-            
-            # (I removed the auto-mutate flag here!)
-            
-            st.success("✅ VCF loaded! Click the **Mutation** tab above to select your SNPs.")
+            st.session_state.tutorial_vcf_gene = "AT1G53910"
+            request_widget_state(analysis_mode_radio="**VCF**")
+            st.session_state.tutorial_notice = (
+                "Tutorial VCF loaded. Open the **Mutation** tab, select gene "
+                "**AT1G53910** and tick the variants you want to apply."
+            )
+            st.rerun()
 
         st.markdown("---")
         st.image('images/Slide9.jpg', width="stretch")

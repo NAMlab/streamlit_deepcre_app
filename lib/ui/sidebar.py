@@ -2,6 +2,35 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
+# ── Cross-tab widget control ─────────────────────────────────────────────────
+#
+# Streamlit refuses to write a widget's session-state entry once that widget has
+# been instantiated in the current run, so a button in the Tutorial tab cannot
+# set the sidebar's model directly. It queues the value here instead and calls
+# st.rerun(); the queue is applied at the top of the next run, before any widget
+# is built. This keeps the sidebar the single source of truth for the model, the
+# organism and the gene list.
+
+PENDING_KEY = "_pending_widget_state"
+
+
+def request_widget_state(**values) -> None:
+    """Queue widget values to be applied at the start of the next run."""
+    pending = st.session_state.get(PENDING_KEY, {})
+    pending.update(values)
+    st.session_state[PENDING_KEY] = pending
+
+
+def _apply_pending(available_species: list, available_models: list) -> None:
+    """Apply queued widget values, skipping any this deployment does not offer."""
+    pending = st.session_state.pop(PENDING_KEY, {})
+    options = {"sidebar_organism": available_species, "sidebar_model": available_models}
+    for key, value in pending.items():
+        if key in options and value not in options[key]:
+            continue            # not served here — leave the widget as the user set it
+        st.session_state[key] = value
+
+
 # ── Sidebar section header helper ────────────────────────────────────────────
 
 def _section(label: str) -> None:
@@ -42,6 +71,8 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
     selected_model    : str
     use_example       : bool
     """
+    _apply_pending(available_species, available_models)
+
     # ── Branding ──────────────────────────────────────────────────────────────
     st.sidebar.markdown(
         """
@@ -61,6 +92,7 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
         label="Species",
         options=available_species,
         help='Select a pre-loaded genome or choose "New" to upload your own.',
+        key="sidebar_organism",
     )
 
     genome = annotation = None
@@ -122,6 +154,7 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
         label="Model",
         options=available_models,
         help="Pre-trained deepCRE models from Peleke et al., 2024.",
+        key="sidebar_model",
     )
 
     # ── Footer ────────────────────────────────────────────────────────────────

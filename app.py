@@ -419,12 +419,17 @@ def main() -> None:
         available_models=MODEL_NAMES,
     )
 
-    # ---Catch the Tutorial Data Override ---
+    # --- Tutorial gene list ---
+    # The tutorial supplies a gene list the sidebar cannot offer, so that one
+    # value is filled in here — but only when the user has not uploaded a list
+    # of their own. The model and the organism are NOT overridden: the tutorial
+    # button seeds the sidebar widgets instead (lib/ui/sidebar.request_widget_state),
+    # so changing the model in the sidebar keeps working while the tutorial runs.
     if st.session_state.get("tutorial_active", False):
-        st.info("💡 **Tutorial Demo is active!** Using tutorial gene list and model. Go to the Tutorial tab to clear this data.", icon="ℹ️")
-        genes_list = st.session_state.tutorial_genes
-        selected_model = st.session_state.tutorial_model
-        selected_organism = "Arabidopsis thaliana (TAIR10)" 
+        st.info("**Tutorial demo is active** — using the tutorial gene list. "
+                "Go to the Tutorial tab to clear it.")
+        if genes_list is None:
+            genes_list = st.session_state.tutorial_genes
 
     validateDataset(genome, annotation, genes_list, use_example)
     validateModel(f"models/{selected_model}.h5")
