@@ -26,6 +26,26 @@ def show_about_tab(available_genomes):
         st.subheader("What's New?")
         
         st.markdown("""
+        **November 10, 2026**
+        * New leaf and root models (deepCRE 2026) for all 13 species, including the
+          first barley models:
+          * *Hordeum vulgare* (Barley) — **new species**
+          * updated versions for *Arabidopsis thaliana*, *Zea mays*,
+            *Solanum lycopersicum* and *Sorghum bicolor*
+          * updated versions for *Beta vulgaris*, *Brassica oleracea*,
+            *Camelina sativa*, *Chenopodium quinoa*, *Cucumis sativus*,
+            *Daucus carota*, *Glycine max* and *Oryza sativa*
+        * First **multi-species reference models** (leaf and root), trained across
+          all 13 species — *Arabidopsis thaliana*, *Beta vulgaris*,
+          *Brassica oleracea*, *Camelina sativa*, *Chenopodium quinoa*,
+          *Cucumis sativus*, *Daucus carota*, *Glycine max*, *Hordeum vulgare*,
+          *Oryza sativa*, *Solanum lycopersicum*, *Sorghum bicolor* and
+          *Zea mays* — with *Brassica oleracea* held out of training for
+          independent evaluation.
+        * The models of **Peleke et al., 2024** remain available and are selectable
+          as their own model set, so published results and the tutorial stay
+          reproducible on this platform.
+
         **March 10, 2026**
         * Expanded the deepCRE toolkit with new leaf and root models for 9 additional species:
           * *Beta vulgaris* (Sugar beet)
