@@ -393,18 +393,52 @@ def show_mutation_results(
 
     st.markdown("<br>", unsafe_allow_html=True) # A tiny bit of breathing room
 
-# --- Side-by-Side Download Buttons ---
+# --- Download Buttons ---
+    # The reference and the mutated importance scores are both exported, and in a
+    # shape that can be used directly: one row per position with the two series
+    # side by side and their difference, rather than the two stacked in a single
+    # column. The per-base file keeps the four nucleotide channels the model
+    # actually saw, which the averaged file reduces away.
     st.markdown("<br>", unsafe_allow_html=True) # A tiny bit of breathing room
-    btn_col2, btn_col1 = st.columns(2)
+    model_id = currentModelId()
+    ref_mean, mut_mean = actual_scores[0].mean(axis=1), actual_scores[1].mean(axis=1)
+    wide_df = pd.DataFrame({
+        "Nucleotide Position": positions,
+        "reference": ref_mean,
+        "mutated": mut_mean,
+        "delta (mutated - reference)": mut_mean - ref_mean,
+        "gene": gene_id,
+        "model": model_id,
+    })
+    base_df = pd.DataFrame({
+        "Nucleotide Position": np.repeat(positions, 4),
+        "Base": np.tile(list("ACGT"), len(positions)),
+        "reference": np.asarray(actual_scores[0]).ravel(),
+        "mutated": np.asarray(actual_scores[1]).ravel(),
+        "gene": gene_id,
+        "model": model_id,
+    })
+    base_df["delta (mutated - reference)"] = base_df["mutated"] - base_df["reference"]
+
+    btn_col2, btn_col1, btn_col3 = st.columns(3)
 
     with btn_col1:
-        # Changed to sal_df
-        csv_saliency = sal_df.assign(model=currentModelId()).to_csv(index=False).encode('utf-8')
         st.download_button(
             label="Download Importance Map (CSV)",
-            data=csv_saliency,
-            file_name=f"{gene_id}_saliency_impact_{currentModelId()}.csv",
+            data=wide_df.to_csv(index=False).encode("utf-8"),
+            file_name=f"{gene_id}_saliency_impact_{model_id}.csv",
             mime="text/csv",
+            help="Average importance per position: reference, mutated and their difference.",
+            width="stretch"
+        )
+
+    with btn_col3:
+        st.download_button(
+            label="Download Per-Base Importance (CSV)",
+            data=base_df.to_csv(index=False).encode("utf-8"),
+            file_name=f"{gene_id}_saliency_per_base_{model_id}.csv",
+            mime="text/csv",
+            help="Importance of all four bases at every position, reference and mutated.",
             width="stretch"
         )
 
