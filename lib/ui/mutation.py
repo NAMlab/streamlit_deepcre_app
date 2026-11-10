@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from lib.utils import normalize_sequence
+from lib.storage import currentModelId
 
 # ── Shared style helpers ──────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ def _sentence(text: str) -> str:
 
 def _chart_title(title: str, subtitle: str = "") -> alt.TitleParams:
     parts = [subtitle] if subtitle else []
+    parts.append(f"deepCRE model: {currentModelId()}")
     parts.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     return alt.TitleParams(title, subtitle=parts, subtitleColor="#9ca3af",
                            fontSize=13, subtitleFontSize=10)
@@ -397,22 +399,22 @@ def show_mutation_results(
 
     with btn_col1:
         # Changed to sal_df
-        csv_saliency = sal_df.to_csv(index=False).encode('utf-8')
+        csv_saliency = sal_df.assign(model=currentModelId()).to_csv(index=False).encode('utf-8')
         st.download_button(
             label="Download Importance Map (CSV)",
             data=csv_saliency,
-            file_name=f"{gene_id}_saliency_impact.csv",
+            file_name=f"{gene_id}_saliency_impact_{currentModelId()}.csv",
             mime="text/csv",
             width="stretch"
         )
 
     with btn_col2:
         # Changed to bar_df
-        csv_bar = bar_df.to_csv(index=False).encode('utf-8')
+        csv_bar = bar_df.assign(model=currentModelId()).to_csv(index=False).encode('utf-8')
         st.download_button(
             label="Download Prediction Probs (CSV)",
             data=csv_bar,
-            file_name=f"{gene_id}_prediction_probs.csv",
+            file_name=f"{gene_id}_prediction_probs_{currentModelId()}.csv",
             mime="text/csv",
             width="stretch"
         )

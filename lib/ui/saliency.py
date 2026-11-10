@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from lib.storage import currentModelId
+
 # ── Styling helpers ───────────────────────────────────────────────────────────
 
 def _section(label: str) -> None:
@@ -14,7 +16,9 @@ def _section(label: str) -> None:
 def _chart_title(title: str, subtitle: str) -> alt.TitleParams:
     return alt.TitleParams(
         title,
-        subtitle=[subtitle, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"],
+        subtitle=[subtitle,
+                  f"deepCRE model: {currentModelId()}",
+                  f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"],
         subtitleColor="#9ca3af",
         fontSize=13,
         subtitleFontSize=10,
@@ -73,12 +77,11 @@ def _opacity_param(name: str = "opacity"):
 # ── CSV export ────────────────────────────────────────────────────────────────
 
 @st.cache_data
-def _pivot_csv(df: pd.DataFrame, column_var: str) -> bytes:
-    return (
-        df.pivot(index="Nucleotide Position", columns=column_var, values="Saliency Score")
-        .to_csv(index=True)
-        .encode("utf-8")
-    )
+def _pivot_csv(df: pd.DataFrame, column_var: str, model_id: str) -> bytes:
+    """Wide CSV with the model written into every row, so the file is self-describing."""
+    wide = df.pivot(index="Nucleotide Position", columns=column_var, values="Saliency Score")
+    wide["model"] = model_id
+    return wide.to_csv(index=True).encode("utf-8")
 
 
 # ── Chart builders ────────────────────────────────────────────────────────────
@@ -169,8 +172,9 @@ def show_saliency_tab(
         st.altair_chart(chart, use_container_width=True, theme=None)
         st.download_button(
             "Download average saliency CSV",
-            data=_pivot_csv(avg_df, "Expression"),
-            file_name=f"avg_saliency_{datetime.now().strftime('%Y-%m-%d')}.csv",
+            data=_pivot_csv(avg_df, "Expression", currentModelId()),
+            file_name=f"avg_saliency_{currentModelId()}_"
+                      f"{datetime.now().strftime('%Y-%m-%d')}.csv",
             mime="text/csv",
         )
 
@@ -233,8 +237,9 @@ def show_saliency_tab(
             st.altair_chart(chart, use_container_width=True, theme=None)
             st.download_button(
                 f"Download {label} base-type saliency CSV",
-                data=_pivot_csv(df, "Base"),
-                file_name=f"base_saliency_{label.lower()}_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                data=_pivot_csv(df, "Base", currentModelId()),
+                file_name=f"base_saliency_{label.lower()}_{currentModelId()}_"
+                          f"{datetime.now().strftime('%Y-%m-%d')}.csv",
                 mime="text/csv",
                 key=f"dl_base_{label}",
             )

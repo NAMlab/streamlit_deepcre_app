@@ -1,6 +1,20 @@
 import streamlit as st
 import io
+import os
 from lib.utils import prepare_dataset, make_predictions, extract_scores, prepare_vcf
+
+
+def currentModelId() -> str:
+    """The model every result on screen was computed with, e.g. 'Arabidopsis_thaliana_leaf'.
+
+    Taken from current_model (a path like 'models/<id>.h5'), which is what the
+    prediction, saliency and mutation caches are keyed on — so it is the model
+    that actually produced the numbers, not merely the one the sidebar shows.
+    Downloads and chart subtitles carry it, so an exported table or figure can
+    be attributed to a model later.
+    """
+    path = st.session_state.get("current_model") or ""
+    return os.path.basename(path).rsplit(".", 1)[0] or "unknown_model"
 
 diagnostic_fields = ['current_genome', 'current_annotation', 'current_selected_genes', 'currently_using_example', 'current_model', 'current_mutation_sequences',
                      'current_vcf_file', 'vcf_content']
