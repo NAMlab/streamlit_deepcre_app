@@ -189,8 +189,13 @@ def _render_dataset_banner(genome, annotation, genes_list, use_example, selected
 def _handle_manual_mutation(gene_ids, gene_starts, gene_ends, x, progress_marker) -> None:
     gene_col, _ = st.columns([0.3, 0.7])
     with gene_col:
+        # The tutorial asks for a specific gene (AT1G67090 for the promoter swap)
+        # and queues it; a queued gene that is not in the current list is dropped
+        # rather than breaking the widget.
+        if st.session_state.get("mut_gene_select") not in list(gene_ids):
+            st.session_state.pop("mut_gene_select", None)
         gene_id = st.selectbox(
-            label="Select Gene", options=gene_ids
+            label="Select Gene", options=gene_ids, key="mut_gene_select"
         )
 
     idx = _gene_index(gene_ids, gene_id)

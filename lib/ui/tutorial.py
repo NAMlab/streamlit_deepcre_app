@@ -9,6 +9,8 @@ from lib.ui.sidebar import request_widget_state, request_model
 # The sidebar entry the tutorial works with. If a deployment does not serve this
 # genome the request is ignored and the sidebar keeps the user's choice.
 TUTORIAL_ORGANISM = "Arabidopsis thaliana (TAIR10)"
+# the gene the promoter-swap step works on
+SWAP_GENE = "AT1G67090"
 
 # ── Helper Functions ─────────────────────────────────────────────────────────
 
@@ -269,6 +271,7 @@ def show_tutorial_tab():
             # manuscript; the variant analysis below stays on the 2024 models.
             request_model("Arabidopsis_thaliana_leaf_v26J")
             request_widget_state(analysis_mode_radio="**manual**",
+                                 mut_gene_select=SWAP_GENE,
                                  mut_region_selection="gTUR",
                                  mut_coord_slider=(1001, 1500))
             st.session_state.tutorial_notice = (
