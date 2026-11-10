@@ -125,7 +125,7 @@ def show_tutorial_tab():
         The available reference organisms and models are shown on the Home Tab under Available genomes.
         """)
         
-        st.image('images/tutorial_01_sidebar_input.png', width="stretch")
+        st.image('images/tutorial_01_sidebar_input.png', width=380)  # a narrow sidebar shot; stretching it fills the page
 
         st.write("""
         Click on “Browse files” and upload File 1 from the Tutorial containing a list of matching gene ids 
