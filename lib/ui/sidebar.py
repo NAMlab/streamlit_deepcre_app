@@ -1,3 +1,5 @@
+import re
+
 import streamlit as st
 import pandas as pd
 from io import StringIO
@@ -220,13 +222,21 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
     genes_list = None
     use_example = False
 
-    if genes_upload is None:
-        use_example = st.sidebar.checkbox(
-            "Use 100 random genes from the genome",
-            value=False,
-            help="Randomly sample 100 genes from the selected genome for a quick demo.",
-        )
-    else:
+    # Typing one or a few gene IDs is the common case -- looking at a single
+    # gene of interest -- and writing a file for it is needless work. The
+    # placeholder names a gene that exists in the tutorial genome, the Rubisco
+    # small subunit RBCS1A, so the box can be tried without looking anything up.
+    typed = st.sidebar.text_input(
+        label="Gene IDs",
+        placeholder="AT1G67090",
+        key="sidebar_typed_genes",
+        help="Type one or more gene IDs, separated by comma, space or new line. "
+             "Example: AT1G67090 (RBCS1A, Rubisco small subunit 1A, A. thaliana). "
+             "An uploaded file takes precedence over this box.",
+    )
+    typed_genes = [g.strip() for g in re.split(r"[,\s;]+", typed or "") if g.strip()]
+
+    if genes_upload is not None:
         validated = _validate_file(genes_upload, "genes list")
         if validated is not None:
             genes_list = (
@@ -234,6 +244,20 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
                 .values.ravel()
                 .tolist()
             )
+        if typed_genes:
+            st.sidebar.info("Using the uploaded file; the typed gene IDs are ignored.")
+    elif typed_genes:
+        genes_list = typed_genes[:1000]
+        if len(typed_genes) > 1000:
+            st.sidebar.warning("Only the first 1 000 gene IDs are used.")
+        st.sidebar.caption(
+            f"{len(genes_list)} gene ID{'s' if len(genes_list) != 1 else ''} entered")
+    else:
+        use_example = st.sidebar.checkbox(
+            "Use 100 random genes from the genome",
+            value=False,
+            help="Randomly sample 100 genes from the selected genome for a quick demo.",
+        )
 
     # ── Model ─────────────────────────────────────────────────────────────────
     _section("deepCRE Model")
