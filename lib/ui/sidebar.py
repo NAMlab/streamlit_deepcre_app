@@ -224,21 +224,24 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
 
     # Typing one or a few gene IDs is the common case -- looking at a single
     # gene of interest -- and writing a file for it is needless work. The
-    # placeholder shows two constitutively high-expressed housekeeping genes,
-    # ACT2 and UBQ10, which every served Arabidopsis model predicts high
-    # (0.970-0.999 on leaf and root, both model generations). It doubles as the
-    # syntax example for several IDs, and the first result a user sees is a
-    # correct one.
+    # placeholder pairs a gene every served Arabidopsis model predicts high with
+    # one every model predicts low, so a first try returns both classes and both
+    # answers are correct: UBQ10 is constitutively expressed (0.970-0.999 across
+    # leaf, root, both model generations and the multi-species models), WUSCHEL
+    # is confined to the stem-cell niche and absent from bulk leaf and root
+    # (0.024-0.309). It doubles as the syntax example for several IDs.
     typed = st.sidebar.text_input(
         label="Gene IDs",
-        placeholder="AT3G18780, AT4G05320",
+        placeholder="AT4G05320, AT2G17950",
         key="sidebar_typed_genes",
         help="Type one or more gene IDs, separated by comma, space or new line. "
-             "Examples: AT3G18780 (ACT2, actin 2) and AT4G05320 (UBQ10, "
-             "polyubiquitin 10) in A. thaliana -- constitutively expressed and "
-             "predicted high by every Arabidopsis model. "
+             "Examples in A. thaliana: AT4G05320 (UBQ10, polyubiquitin 10) is "
+             "constitutively expressed and predicted high by every model; "
+             "AT2G17950 (WUS, WUSCHEL) is restricted to the stem-cell niche and "
+             "predicted low by every model. "
              "An uploaded file takes precedence over this box.",
     )
+
     typed_genes = [g.strip() for g in re.split(r"[,\s;]+", typed or "") if g.strip()]
 
     if genes_upload is not None:
