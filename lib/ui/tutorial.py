@@ -65,6 +65,17 @@ def load_tutorial_fasta(target_header):
         seq = "GCCCTCCCTCCGCTTCCAAAGAAACGCCCCCCATCGCCACTATATACATACCCCCCCTCTCCTCCCATCCCCCAACCCTACCACCACCACCACCACCACCTCCACCTCCTCCCCCCTCGCTGCCGGACGACGAGCTCCTCCCCCCTCCCCCTCCGCCGCCGCCGCGCCGGTAACCACCCCGCCCCTCTCCTCTTTCTTTCTCCGTTTTTTTTTTCCGTCTCGGTCTCGATCTTTGGCCTTGGTAGTTTGGGTGGGCGAGAGGCGGCTTCGTGCGCGCCCAGATCGGTGCGCGGGAGGGGCGGGATCTCGCGGCTGGGGCTCTCGCCGGCGTGGATCCGGCCCGGATCTCGCGGGGAATGGGGCTCTCGGATGTAGATCTGCGATCCGCCGTTGTTGGGGGAGATGATGGGGGGTTTAAAATTTCCGCCATGCTAAACAAGATCAGGAAGAGGGGAAAAGGGCACTATGGTTTATATTTTTATATATTTCTGCTGCTTCGT"
     return seq
 
+def _figure(path: str, **kw) -> None:
+    """Show a tutorial screenshot if the deployment ships one.
+
+    The screenshots are not in the repository: they are large, and they go stale
+    with every interface change. A deployment can drop PNGs into images/ with the
+    names used below and they appear; without them the tutorial is text only.
+    """
+    if os.path.exists(path):
+        st.image(path, **kw)
+
+
 # ── Main UI Function ─────────────────────────────────────────────────────────
 
 def show_tutorial_tab():
@@ -125,7 +136,7 @@ def show_tutorial_tab():
         The available reference organisms and models are shown on the Home Tab under Available genomes.
         """)
         
-        st.image('images/tutorial_01_sidebar_input.png', width=380)  # a narrow sidebar shot; stretching it fills the page
+        _figure('images/tutorial_01_sidebar_input.png', width=380)  # a narrow sidebar shot; stretching it fills the page
 
         st.write("""
         Click on “Browse files” and upload File 1 from the Tutorial containing a list of matching gene ids 
@@ -164,7 +175,7 @@ def show_tutorial_tab():
         st.markdown("---")
 
         st.write("Once the genes are loaded, the sidebar shows the selection and can still be changed:")
-        st.image('images/tutorial_02_tutorial_loaded.png', width="stretch")
+        _figure('images/tutorial_02_tutorial_loaded.png', width="stretch")
 
         st.write("Alternatively, the user can always select 100 random genes from a selected genome in the sidebar.")
         
@@ -174,7 +185,7 @@ def show_tutorial_tab():
         The toolkit provides tabular and graphical output for the query genes, mainly highlighting genes that are 
         predicted to have low and high rates of transcription (pink and purple).
         """)
-        st.image('images/tutorial_03_predictions_table.png', width="stretch")
+        _figure('images/tutorial_03_predictions_table.png', width="stretch")
 
         st.write("""All tables and figures can be downloaded.""")
         if os.path.exists('data/Tutorial_table1_Atleaf.csv'):
@@ -184,7 +195,7 @@ def show_tutorial_tab():
         The toolkit should have produced figures. Options to further process the output should become visible
         by mouse-over. Please save outputs by clicking on the options.
         """)
-        st.image('images/tutorial_04_predictions_figures.png', width="stretch")
+        _figure('images/tutorial_04_predictions_figures.png', width="stretch")
 
         st.write("""
         During the Predictions the chosen deepCRE model can be changed, without the query being lost. Please change
@@ -217,7 +228,7 @@ def show_tutorial_tab():
         The users can access saliency maps by clicking on the tab “Explanation”. Switching between the
         At(leaf) and At(root) models shows how the importance profile differs between the two tissues.
         """)
-        st.image('images/tutorial_05_explanation_saliency.png', width="stretch")
+        _figure('images/tutorial_05_explanation_saliency.png', width="stretch")
 
         st.write("""
         The deepCRE toolkit provides more figures than shown in the results. The users have access to graphical output:\n
@@ -228,7 +239,7 @@ def show_tutorial_tab():
         Base-type average saliency map for lowly expressed genes\n
         Sum saliency score for lowly expressed gene\n
         """)
-        st.image('images/tutorial_06_explanation_more.png', width="stretch")
+        _figure('images/tutorial_06_explanation_more.png', width="stretch")
 
         st.write("\n---\n")
 
@@ -244,7 +255,7 @@ def show_tutorial_tab():
         manually change, e.g. copy-paste sequences from different sources and compare the effects to the query sequence 
         measured by change in predicted probability and saliency maps. 
         """)
-        st.image('images/tutorial_07_mutation_manual.png', width="stretch")
+        _figure('images/tutorial_07_mutation_manual.png', width="stretch")
         st.write("""
         To reproduce the results of the gene promoter characterization please select the Manual editing mode, gene of 
         interest AT1G67090, and the 5’UTR (gTUR) region as region of interest. 
@@ -296,7 +307,7 @@ def show_tutorial_tab():
         How large the change is, and in which direction, depends on the gene and on the model that is
         selected — the panel below the plots reports the difference.
         """)
-        st.image('images/tutorial_08_mutation_results.png', width="stretch")
+        _figure('images/tutorial_08_mutation_results.png', width="stretch")
 
         st.write("""
         The change in predicted probabilities is displayed below the plots. The exact predicted probability for the 
@@ -329,7 +340,7 @@ def show_tutorial_tab():
             st.rerun()
 
         st.markdown("---")
-        st.image('images/tutorial_09_vcf_mode.png', width="stretch")
+        _figure('images/tutorial_09_vcf_mode.png', width="stretch")
         st.write("""
         The toolkit displays the uploaded vcf file and all variants found within the selected
         gene regions. From the latter, distinct variants can be tagged and will be displayed in a thief table containing
@@ -337,7 +348,7 @@ def show_tutorial_tab():
         column. After loading, please click on Mutate Sequence to perform predictions and explanation for gene variants. 
         """)
 
-        st.image('images/tutorial_10_vcf_selection.png', width="stretch")
+        _figure('images/tutorial_10_vcf_selection.png', width="stretch")
 
         st.write("""
         This will generate a plot as output showing the change in predicted probability and the effect on single nucleotide
