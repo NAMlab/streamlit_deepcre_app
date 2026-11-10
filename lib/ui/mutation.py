@@ -181,10 +181,6 @@ def show_manual_mutation(gene_id: str, start: int, end: int,
         st.session_state.last_mut_coords = (mut_reg_start, mut_reg_end)
         st.session_state.mut_notice = None  # a different region/range: old notice no longer applies
 
-    if st.session_state.get("tutorial_mutation_active"):
-        st.session_state.sub_seq_to_mutate = st.session_state.tutorial_mut_seq
-        st.session_state.tutorial_mutation_active = False
-
     region_len = mut_reg_end - mut_reg_start
 
     def _splice(edited_text):
@@ -209,6 +205,19 @@ def show_manual_mutation(gene_id: str, start: int, end: int,
         st.session_state.mutated_seq = merged
         # Show the corrected (e.g. padded) text in the box instead of the short one.
         st.session_state.sub_seq_to_mutate = fixed
+
+    # --- Tutorial injection ---
+    # This used to write the donor sequence into the text box only. The box then
+    # showed the swapped sequence while st.session_state.mutated_seq was still the
+    # reference, so the model was handed [reference, reference] and every download
+    # contained the reference twice. Splice it into the working sequence as well,
+    # i.e. do what pressing "Mutate" does.
+    if st.session_state.get("tutorial_mutation_active"):
+        donor = st.session_state.tutorial_mut_seq
+        merged, fixed = _splice(donor)
+        st.session_state.mutated_seq = merged
+        st.session_state.sub_seq_to_mutate = fixed
+        st.session_state.tutorial_mutation_active = False
 
     with seq_col:
         _section(f"Edit {sel_region} ({mut_reg_start}–{mut_reg_end})")
@@ -348,6 +357,16 @@ def show_mutation_results(
 
     with sal_col:
         st.altair_chart(alt.layer(*layers), use_container_width=True, theme=None, key=f"mut_sal_{result_key}")
+
+        # Two identical input sequences produce two identical curves and a
+        # download whose "mutated" half is a copy of the reference. Say so
+        # instead of letting it read as a result.
+        if np.array_equal(np.asarray(actual_scores[0]), np.asarray(actual_scores[1])):
+            st.warning(
+                "No change applied — the edited sequence is identical to the reference, "
+                "so both curves and both halves of the downloads are the reference. "
+                "Edit the sequence and press **Mutate**.",
+            )
 
         delta = float(pred_probs[0] - pred_probs[1])
         if delta != 0:
