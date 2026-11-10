@@ -289,7 +289,9 @@ def show_tutorial_tab():
         st.write("""
         Paste this sequence into the target window for text editing of the deepCRE toolkit Mutation mode. 
         After clicking “Mutate”, new probabilities and saliency maps are generated. The exchange of the
-        gTUR lowers the predicted probability and changes the importance profile over the swapped region.
+        gTUR changes both the predicted probability and the importance profile over the swapped region.
+        How large the change is, and in which direction, depends on the gene and on the model that is
+        selected — the panel below the plots reports the difference.
         """)
         st.image('images/Slide7.jpg', width="stretch")
 
