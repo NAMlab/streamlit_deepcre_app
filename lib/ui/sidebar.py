@@ -46,6 +46,93 @@ def _section(label: str) -> None:
     )
 
 
+# ── Model menu ───────────────────────────────────────────────────────────────
+#
+# 36 models are served: the 26 single-species and 2 multi-species models of this
+# manuscript (_v26J), and the 8 models of Peleke et al., 2024, which stay on the
+# platform so the tutorial and the published supplementary figures remain
+# reproducible. A flat list of 36 is unusable and lets a reader pick a species
+# that a given set does not contain, so the menu is set -> species -> tissue and
+# resolves to exactly one file.
+#
+# models/manifest.tsv drives it (file, version, kind, species_or_set, tissue,
+# fold_or_held_out, label, sha256). Without the manifest the menu falls back to
+# the plain list of .h5 files, so a deployment that has not got it still works.
+
+MODEL_SETS = [
+    ("deepCRE 2026 — single species", "v26J", "single-species"),
+    ("deepCRE 2026 — multi-species",  "v26J", "multi-species"),
+    ("Peleke et al., 2024",           "2024", "single-species"),
+]
+
+
+@st.cache_data
+def _load_model_manifest(path: str = "models/manifest.tsv"):
+    try:
+        man = pd.read_csv(path, sep="\t")
+    except Exception:
+        return None
+    needed = {"file", "version", "kind", "species_or_set", "tissue"}
+    return man if needed.issubset(man.columns) else None
+
+
+def request_model(file_id: str) -> None:
+    """Queue the model menu so that it resolves to this model file.
+
+    Used by the Tutorial tab, which has to select a specific model: the 2024
+    models for the steps that reproduce published numbers, the _v26J models for
+    the promoter swap. A model this deployment does not serve is ignored.
+    """
+    man = _load_model_manifest()
+    if man is None:
+        request_widget_state(sidebar_model=file_id)
+        return
+    fname = file_id if str(file_id).endswith(".h5") else f"{file_id}.h5"
+    row = man[man.file == fname]
+    if row.empty:
+        return
+    row = row.iloc[0]
+    label = next((lab for lab, v, k in MODEL_SETS
+                  if v == row.version and k == row.kind), None)
+    if label is None:
+        return
+    request_widget_state(sidebar_model_set=label,
+                         sidebar_species=row.species_or_set,
+                         sidebar_tissue=row.tissue)
+
+
+def _model_picker(available_models: list) -> str:
+    """Return the model id (file name without .h5) the user selected."""
+    man = _load_model_manifest()
+    if man is None:
+        return st.sidebar.selectbox(
+            label="Model", options=available_models,
+            help="models/manifest.tsv not found — showing every model file.",
+            key="sidebar_model",
+        )
+
+    labels = [lab for lab, v, k in MODEL_SETS
+              if not man[(man.version == v) & (man.kind == k)].empty]
+    chosen = st.sidebar.radio("Model set", options=labels, key="sidebar_model_set",
+                              help="Models of this manuscript, or the published "
+                                   "Peleke et al., 2024 models the tutorial uses.")
+    version, kind = next((v, k) for lab, v, k in MODEL_SETS if lab == chosen)
+    subset = man[(man.version == version) & (man.kind == kind)]
+
+    species = st.sidebar.selectbox(
+        "Species" if kind == "single-species" else "Training set",
+        options=sorted(subset.species_or_set.unique()), key="sidebar_species")
+    rows = subset[subset.species_or_set == species]
+
+    tissues = sorted(rows.tissue.unique())
+    tissue = st.sidebar.radio("Tissue", options=tissues, horizontal=True,
+                              key="sidebar_tissue")
+    row = rows[rows.tissue == tissue].iloc[0]
+
+    st.sidebar.caption(f"→ `{row.file}`")
+    return row.file[:-3] if str(row.file).endswith(".h5") else row.file
+
+
 # ── File validation ───────────────────────────────────────────────────────────
 
 def _validate_file(file, label: str):
@@ -150,12 +237,7 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
 
     # ── Model ─────────────────────────────────────────────────────────────────
     _section("deepCRE Model")
-    selected_model = st.sidebar.selectbox(
-        label="Model",
-        options=available_models,
-        help="Pre-trained deepCRE models from Peleke et al., 2024.",
-        key="sidebar_model",
-    )
+    selected_model = _model_picker(available_models)
 
     # ── Footer ────────────────────────────────────────────────────────────────
     st.sidebar.markdown(

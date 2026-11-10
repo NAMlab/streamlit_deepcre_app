@@ -4,7 +4,7 @@ import zipfile
 import streamlit as st
 import pandas as pd
 
-from lib.ui.sidebar import request_widget_state
+from lib.ui.sidebar import request_widget_state, request_model
 
 # The sidebar entry the tutorial works with. If a deployment does not serve this
 # genome the request is ignored and the sidebar keeps the user's choice.
@@ -137,8 +137,10 @@ def show_tutorial_tab():
             # Seed the sidebar widgets instead of overriding them downstream, so
             # the user can still change the model from the sidebar afterwards —
             # which is exactly what step 2 of this tutorial asks them to do.
-            request_widget_state(sidebar_model="Arabidopsis_thaliana_leaf",
-                                 sidebar_organism=TUTORIAL_ORGANISM)
+            # Steps 1-3 reproduce Tutorial tables 1 and 2, which were computed
+            # with the Peleke et al., 2024 models, so the tutorial selects those.
+            request_model("Arabidopsis_thaliana_leaf")
+            request_widget_state(sidebar_organism=TUTORIAL_ORGANISM)
             st.session_state.tutorial_notice = (
                 "Tutorial gene list loaded and the model set to Arabidopsis_thaliana_leaf. "
                 "Open the **Predictions** tab to see the results."
@@ -255,6 +257,9 @@ def show_tutorial_tab():
             # Set the exact UI state for the Mutation tab. The Mutation tab is a
             # fragment, so it only picks these up on a full rerun — hence the
             # queue and the st.rerun() below.
+            # The promoter swap is demonstrated on the models of this
+            # manuscript; the variant analysis below stays on the 2024 models.
+            request_model("Arabidopsis_thaliana_leaf_v26J")
             request_widget_state(analysis_mode_radio="**manual**",
                                  mut_region_selection="gTUR",
                                  mut_coord_slider=(1001, 1500))
@@ -299,6 +304,7 @@ def show_tutorial_tab():
         if st.button("Load VCF File & Switch to RAP2.12", type="primary"):
             st.session_state.tutorial_vcf_active = True
             st.session_state.tutorial_vcf_gene = "AT1G53910"
+            request_model("Arabidopsis_thaliana_leaf")
             request_widget_state(analysis_mode_radio="**VCF**")
             st.session_state.tutorial_notice = (
                 "Tutorial VCF loaded. Open the **Mutation** tab, select gene "
