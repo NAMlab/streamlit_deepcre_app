@@ -267,9 +267,9 @@ def show_tutorial_tab():
             # Set the exact UI state for the Mutation tab. The Mutation tab is a
             # fragment, so it only picks these up on a full rerun — hence the
             # queue and the st.rerun() below.
-            # The promoter swap is demonstrated on the models of this
-            # manuscript; the variant analysis below stays on the 2024 models.
-            request_model("Arabidopsis_thaliana_leaf_v26J")
+            # The whole tutorial runs on the Peleke et al., 2024 models: every
+            # number and figure it reports was produced with them.
+            request_model("Arabidopsis_thaliana_leaf")
             request_widget_state(analysis_mode_radio="**manual**",
                                  mut_gene_select=SWAP_GENE,
                                  mut_region_selection="gTUR",
