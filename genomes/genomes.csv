@@ -1,2 +1,1 @@
 display_name,description,assembly_file,annotation_file
-"Arabidopsis thaliana (TAIR10)","TAIR10 assembly with the Ensembl Plants release 55 annotation. Local test entry for the round-3 web-tool validation; the deployed site serves its own copy.","Arabidopsis_thaliana.TAIR10.dna.toplevel.fa.gz","Arabidopsis_thaliana.TAIR10.55.gff3.gz"
