@@ -68,12 +68,20 @@ def load_tutorial_fasta(target_header):
 def _figure(path: str, **kw) -> None:
     """Show a tutorial screenshot if the deployment ships one.
 
-    The screenshots are not in the repository: they are large, and they go stale
-    with every interface change. A deployment can drop PNGs into images/ with the
-    names used below and they appear; without them the tutorial is text only.
+    Screenshots come as a light and a dark pair, `<name>_light.png` and
+    `<name>_dark.png`. Streamlit does not tell the server which theme the viewer
+    has chosen -- st.context.theme reports the browser's preference, which is not
+    the same thing -- so the pair is selected by the control in the tutorial
+    rather than guessed. A deployment that ships only one of the two, or an
+    unsuffixed file, still works: whatever is present is shown, and if nothing is
+    present the tutorial is text only.
     """
-    if os.path.exists(path):
-        st.image(path, **kw)
+    theme = st.session_state.get("tutorial_shot_theme", "Light")
+    base, ext = os.path.splitext(path)
+    for candidate in (f"{base}_{theme.lower()}{ext}", path):
+        if os.path.exists(candidate):
+            st.image(candidate, **kw)
+            return
 
 
 # ── Main UI Function ─────────────────────────────────────────────────────────
@@ -130,13 +138,22 @@ def show_tutorial_tab():
 
         st.write("\n---\n")
 
+        # The screenshots below exist in a light and a dark version. Streamlit
+        # cannot tell the server which theme the viewer picked, so the choice is
+        # offered here; it only affects the screenshots, not the interface.
+        if any(os.path.exists(f"images/{n}_dark.png")
+               for n in ("guide_01_input", "guide_03_predictions")):
+            st.radio("Screenshots", ("Light", "Dark"), horizontal=True,
+                     key="tutorial_shot_theme",
+                     help="Match the screenshots to the theme you are using.")
+
         st.write("**1. Providing a query and selecting a deepCRE model**")
         st.write("""
         **1.1** The deepCRE toolkit requires a list of gene ids from one available reference organism. 
         The available reference organisms and models are shown on the Home Tab under Available genomes.
         """)
         
-        _figure('images/tutorial_01_sidebar_input.png', width=380)  # a narrow sidebar shot; stretching it fills the page
+        _figure('images/guide_01_input.png', width=380)  # a narrow sidebar shot; stretching it fills the page
 
         st.write("""
         Click on “Browse files” and upload File 1 from the Tutorial containing a list of matching gene ids 
@@ -175,7 +192,7 @@ def show_tutorial_tab():
         st.markdown("---")
 
         st.write("Once the genes are loaded, the sidebar shows the selection and can still be changed:")
-        _figure('images/tutorial_02_tutorial_loaded.png', width="stretch")
+        _figure('images/guide_02_model.png', width="stretch")
 
         st.write("Alternatively, the user can always select 100 random genes from a selected genome in the sidebar.")
         
@@ -185,7 +202,7 @@ def show_tutorial_tab():
         The toolkit provides tabular and graphical output for the query genes, mainly highlighting genes that are 
         predicted to have low and high rates of transcription (pink and purple).
         """)
-        _figure('images/tutorial_03_predictions_table.png', width="stretch")
+        _figure('images/guide_03_predictions.png', width="stretch")
 
         st.write("""All tables and figures can be downloaded.""")
         if os.path.exists('data/Tutorial_table1_Atleaf.csv'):
@@ -228,7 +245,7 @@ def show_tutorial_tab():
         The users can access saliency maps by clicking on the tab “Explanation”. Switching between the
         At(leaf) and At(root) models shows how the importance profile differs between the two tissues.
         """)
-        _figure('images/tutorial_05_explanation_saliency.png', width="stretch")
+        _figure('images/guide_04_explanation.png', width="stretch")
 
         st.write("""
         The deepCRE toolkit provides more figures than shown in the results. The users have access to graphical output:\n
@@ -255,7 +272,7 @@ def show_tutorial_tab():
         manually change, e.g. copy-paste sequences from different sources and compare the effects to the query sequence 
         measured by change in predicted probability and saliency maps. 
         """)
-        _figure('images/tutorial_07_mutation_manual.png', width="stretch")
+        _figure('images/guide_05_mutation.png', width="stretch")
         st.write("""
         To reproduce the results of the gene promoter characterization please select the Manual editing mode, gene of 
         interest AT1G67090, and the 5’UTR (gTUR) region as region of interest. 
@@ -340,7 +357,7 @@ def show_tutorial_tab():
             st.rerun()
 
         st.markdown("---")
-        _figure('images/tutorial_09_vcf_mode.png', width="stretch")
+        _figure('images/guide_06_variants.png', width="stretch")
         st.write("""
         The toolkit displays the uploaded vcf file and all variants found within the selected
         gene regions. From the latter, distinct variants can be tagged and will be displayed in a thief table containing

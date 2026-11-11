@@ -35,17 +35,17 @@ html, body, [class*="css"] {
 }
 
 /* Safely target standard markdown text without breaking Streamlit widgets */
-.stMarkdown p { 
-    color: #333333; 
+.stMarkdown p {
+    color: light-dark(#333333, #FAFAFA);
 }
 
 /* ── Harmonized Headers ── */
 h1, h2, h3, h4, h5 {
     font-family: 'Inter', 'Segoe UI', sans-serif !important;
-    color: #4F1787 !important; /* Unified Deep Purple */
+    color: light-dark(#4F1787, #C9A7FF) !important; /* Unified Deep Purple */
     font-weight: 700 !important;
 }
-h1 { font-size: 2.0rem !important; border-bottom: 2px solid #4F1787; padding-bottom: 10px; margin-bottom: 20px;}
+h1 { font-size: 2.0rem !important; border-bottom: 2px solid light-dark(#4F1787, #C9A7FF); padding-bottom: 10px; margin-bottom: 20px;}
 h3 { font-size: 1.3rem !important; margin-top: 1.5rem !important; margin-bottom: 0.5rem !important; }
 
 /* ── Primary Action Buttons (Red-Orange) ── */
@@ -60,15 +60,15 @@ button[kind="primary"] p {
 
 /* ── Sidebar polish ── */
 section[data-testid="stSidebar"] {
-    background: #fafafa;
-    border-right: 1px solid #e5e7eb;
+    background: light-dark(#fafafa, #1A1D24);
+    border-right: 1px solid light-dark(#e5e7eb, #2E3440);
 }
 section[data-testid="stSidebar"] label {
     font-weight: 600;
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #4F1787 !important; 
+    color: light-dark(#4F1787, #C9A7FF) !important;
 }
 
 /* ── Info & Instruction Banners ── */
@@ -78,9 +78,9 @@ section[data-testid="stSidebar"] label {
 
 /* ── Force Tab Text to be Larger ── */
 button[data-baseweb="tab"] p {
-    font-size: 1.25rem !important; 
+    font-size: 1.25rem !important;
     font-weight: 600 !important;
-    color: #333333;
+    color: light-dark(#333333, #FAFAFA);
 }
 button[data-baseweb="tab"] {
     padding-top: 0.8rem !important;
@@ -89,12 +89,12 @@ button[data-baseweb="tab"] {
 /* ── Harmonized Headers ── */
 h1, h2, h4, h5 {
     font-family: 'Inter', 'Segoe UI', sans-serif !important;
-    color: #4F1787 !important; /* Unified Deep Purple for standard titles */
+    color: light-dark(#4F1787, #C9A7FF) !important; /* Unified Deep Purple for standard titles */
     font-weight: 700 !important;
 }
 h1 {
     font-size: 2.0rem !important;
-    border-bottom: 2px solid #4F1787;
+    border-bottom: 2px solid light-dark(#4F1787, #C9A7FF);
     padding-bottom: 10px;
     margin-bottom: 20px;
 }
@@ -112,13 +112,13 @@ h3 {
     background: linear-gradient(90deg, #FF4B4B, #FF8E53) !important;
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
-    border-bottom: 2px solid #FFEDEA; /* Soft underline matching the gradient */
+    border-bottom: 2px solid light-dark(#FFEDEA, #4A3330); /* Soft underline matching the gradient */
 }
 /* ── Navigation Tabs (Framed & Purple Gradient) ── */
 
 /* 1. The Grey Background Frame */
 div[data-baseweb="tab-list"] {
-    background-color: #F1F5F9 !important; /* Soft, professional slate grey */
+    background-color: light-dark(#F1F5F9, #1A1D24) !important; /* Soft, professional slate grey */
     padding: 0.6rem 1rem !important;
     border-radius: 10px !important;
     gap: 0.5rem !important;
@@ -134,7 +134,7 @@ button[data-baseweb="tab"] {
 
 /* 3. Make the "Active" tab pop out like a physical card */
 button[data-baseweb="tab"][aria-selected="true"] {
-    background-color: #FFFFFF !important;
+    background-color: light-dark(#FFFFFF, #0E1117) !important;
     box-shadow: 0px 2px 5px rgba(0,0,0,0.08) !important;
 }
 /* 4. The Tab Text (Larger + Solid Purple) */
@@ -142,10 +142,18 @@ button[data-baseweb="tab"] p {
     font-size: 1.55rem !important; /* Keeps the larger size */
     font-weight: 800 !important;
     margin: 0 !important;
-    color: #4F1787 !important; /* Solid Deep Purple */
+    color: light-dark(#4F1787, #C9A7FF) !important; /* Solid Deep Purple */
 }
 </style>
 """
+
+# The stylesheet above is written for both themes with the CSS light-dark()
+# function. Streamlit sets color-scheme: light|dark on .stApp, which every
+# descendant inherits, so light-dark() resolves to whichever theme is actually
+# applied. This replaces colours that were hard-coded for the light theme: in
+# dark mode the sidebar stayed #fafafa while Streamlit set the body text to
+# #fafafa too, which made the sidebar unreadable. The red-orange gradient reads
+# on either background and is left alone.
 
 def _gene_index(gene_ids: list, gene_id: str) -> int:
     """Return list index for a gene ID (avoids repeated .index() calls)."""
