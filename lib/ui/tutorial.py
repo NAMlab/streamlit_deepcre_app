@@ -192,7 +192,7 @@ def show_tutorial_tab():
         st.markdown("---")
 
         st.write("Once the genes are loaded, the sidebar shows the selection and can still be changed:")
-        _figure('images/guide_02_model.png', width="stretch")
+        _figure('images/guide_02_model.png', width=380)  # a narrow sidebar strip; stretching it blows it up
 
         st.write("Alternatively, the user can always select 100 random genes from a selected genome in the sidebar.")
         

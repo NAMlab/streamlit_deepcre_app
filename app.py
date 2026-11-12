@@ -194,7 +194,8 @@ def _render_dataset_banner(genome, annotation, genes_list, use_example, selected
             )
 
 
-def _handle_manual_mutation(gene_ids, gene_starts, gene_ends, x, progress_marker) -> None:
+def _handle_manual_mutation(gene_ids, gene_starts, gene_ends, gene_chroms,
+                            gene_strands, x, progress_marker) -> None:
     gene_col, _ = st.columns([0.3, 0.7])
     with gene_col:
         # The tutorial asks for a specific gene (AT1G67090 for the promoter swap)
@@ -214,7 +215,8 @@ def _handle_manual_mutation(gene_ids, gene_starts, gene_ends, x, progress_marker
     central_pad_size = 3020 - (1000 + utr_len) * 2
 
     mut_reg_start, mut_reg_end = show_manual_mutation(
-        gene_id, start, end, seq, utr_len, central_pad_size
+        gene_id, start, end, seq, utr_len, central_pad_size,
+        strand=gene_strands[idx], chrom=gene_chroms[idx],
     )
 
     # Guard: the model only accepts sequences of exactly the original length.
@@ -403,7 +405,8 @@ def _mutation_tab(gene_ids, gene_starts, gene_ends, gene_chroms, gene_strands, x
     """
     mutate_analysis_type = choose_analysis_type()
     if mutate_analysis_type == "**manual**":
-        _handle_manual_mutation(gene_ids, gene_starts, gene_ends, x, None)
+        _handle_manual_mutation(gene_ids, gene_starts, gene_ends, gene_chroms,
+                                gene_strands, x, None)
     else:
         _handle_vcf_mutation(
             gene_ids, gene_starts, gene_ends,

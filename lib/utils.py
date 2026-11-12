@@ -239,3 +239,60 @@ def check_file(file, file_type):
         return_file = None
         st.error(f":red[The uploaded {file_type} file is empty. Please verify !]", icon="⚠️")
     return return_file
+
+
+# ── deepCRE window <-> genomic coordinates ───────────────────────────────────
+#
+# prepare_dataset() builds the 3020 bp input as
+#     +  strand: promoter | N-pad | terminator
+#     -  strand: revcomp(terminator) | N-pad | revcomp(promoter)
+# with promoter = [start - 1000, start + utr_len) and
+#      terminator = [end - utr_len, end + 1000), both 0-based half-open, and
+# start/end as read_gene_models() returns them (GFF start already made 0-based).
+#
+# The two helpers below are the only place that mapping is written down for the
+# interface. They work in 1-based coordinates in both directions, because that
+# is what a user reads off a genome browser, a GFF or a VCF: window position 1
+# is the first base of the gUR, and genomic position g is the g-th base of the
+# chromosome. Positions in the central N-pad have no genomic counterpart and
+# give None; genomic positions outside the two extracted blocks likewise.
+#
+# The arithmetic agrees with the VCF path in app.py, which maps variant
+# positions into the same window; test_window_coords.0.py checks that on every
+# position of both strands.
+
+def genomic_from_window(window_pos: int, start: int, end: int, strand: str,
+                        utr_len: int, central_pad_size: int):
+    """1-based window position -> 1-based genomic position, or None in the pad."""
+    i = int(window_pos) - 1
+    if not 0 <= i < 2 * (1000 + utr_len) + central_pad_size:
+        return None
+    left_len = 1000 + utr_len                 # promoter (+) or terminator (-)
+    right_from = left_len + central_pad_size
+    if i < left_len:
+        p0 = (start - 1000 + i) if strand == "+" else (end + 999 - i)
+    elif i < right_from:
+        return None                           # central N-pad
+    else:
+        k = i - right_from
+        p0 = (end - utr_len + k) if strand == "+" else (start + utr_len - 1 - k)
+    return p0 + 1
+
+
+def window_from_genomic(genomic_pos: int, start: int, end: int, strand: str,
+                        utr_len: int, central_pad_size: int):
+    """1-based genomic position -> 1-based window position, or None if outside."""
+    p0 = int(genomic_pos) - 1
+    left_len = 1000 + utr_len
+    right_from = left_len + central_pad_size
+    in_prom = start - 1000 <= p0 < start + utr_len
+    in_term = end - utr_len <= p0 < end + 1000
+    if not (in_prom or in_term):
+        return None
+    if strand == "+":
+        i = (p0 - start + 1000) if in_prom else (right_from + p0 - end + utr_len)
+    else:
+        i = (end + 999 - p0) if in_term else (right_from + start + utr_len - 1 - p0)
+    if not 0 <= i < 2 * (1000 + utr_len) + central_pad_size:
+        return None
+    return i + 1
