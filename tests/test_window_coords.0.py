@@ -9,7 +9,9 @@ Three checks, on both strands and on a short gene where utr_len < 500:
   1. every window position outside the N-pad maps to a genomic position and back
   2. every genomic position of the two extracted blocks maps into the window and back
   3. the genomic -> window direction gives the same answer as the arithmetic in
-     app.py's VCF path, which maps variant positions into the same window
+     app.py's VCF path, which maps variant positions into the same window --
+     on every position, including the last base of each extracted block, which
+     that path used to drop before its bounds were corrected to <=
 """
 import sys
 
@@ -25,8 +27,8 @@ def vcf_path_mapping(pos, start, end, strand, utr_len, central_pad_size):
     it is the promoter of the gene. Reproduced here verbatim in that logic.
     """
     prom_start, term_start = start - 1000, end - utr_len
-    in_prom = prom_start < pos < start + utr_len or pos == prom_start
-    in_term = term_start < pos < end + 1000 or pos == term_start
+    in_prom = prom_start < pos <= start + utr_len
+    in_term = term_start < pos <= end + 1000
     if not (in_prom or in_term):
         return None
     if strand == "+":
@@ -53,7 +55,6 @@ def check(start, end, strand, label):
     pad_from, pad_to = 1000 + utr_len + 1, 1000 + utr_len + pad
 
     n_win = n_gen = n_vcf = 0
-    n_boundary = []
     for w in range(1, size + 1):
         g = genomic_from_window(w, *args)
         if pad_from <= w <= pad_to:
@@ -71,22 +72,8 @@ def check(start, end, strand, label):
         assert genomic_from_window(w, *args) == g, f"{label}: genomic {g} round-trip"
         n_gen += 1
         expected = vcf_path_mapping(g, *args)
-        # The VCF filter bounds a 1-based position with a strict < against a
-        # 0-based exclusive end, and special-cases pos == <block>_start as the
-        # block's first base although that 0-based bound is the previous base.
-        # Both errors land on the same two coordinates: the last base of the
-        # promoter block (start + utr_len) and of the terminator block
-        # (end + 1000). The first is dropped, or on a gene short enough that it
-        # coincides with end - utr_len it is assigned to the wrong block; the
-        # second is always dropped. 2 positions of 3020. Recorded here rather
-        # than changed: the variant table and prepare_vcf() share that bound and
-        # that path is not in scope for this change.
-        if g in (start + utr_len, end + 1000):
-            assert expected != w, (f"{label}: genomic {g} no longer disagrees with "
-                                   f"the VCF path -- was it fixed? update this test")
-            n_boundary.append((g, w, expected))
-            continue
-        assert expected is not None, f"{label}: the VCF path drops genomic {g}"
+        assert expected is not None, (
+            f"{label}: the VCF path drops genomic {g}, which is in the window")
         assert w == expected, (f"{label}: genomic {g} -> window {w}, "
                                f"but the VCF path maps it to {expected}")
         n_vcf += 1
@@ -101,10 +88,9 @@ def check(start, end, strand, label):
         assert window_from_genomic(g, *args) is None, \
             f"{label}: genomic {g} is outside the window but was accepted"
 
-    assert len(n_boundary) == 2, f"{label}: expected 2 boundary bases, got {n_boundary}"
     print(f"  {label:34s} utr_len={utr_len:3d} pad={pad:4d}  "
-          f"{n_win} window pos, {n_gen} genomic pos, {n_vcf} agree with the VCF path, "
-          f"{len(n_boundary)} boundary bases it gets wrong")
+          f"{n_win} window pos, {n_gen} genomic pos, "
+          f"{n_vcf} agree with the VCF path")
 
 
 if __name__ == "__main__":

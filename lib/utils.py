@@ -216,9 +216,11 @@ def prepare_vcf(uploaded_file, gene_starts, gene_ends, gene_chroms):
                              chunksize=100000,
                              header=None,
                              iterator=True)
+    # Pos is 1-based; the bounds are 0-based and the upper one is exclusive, so
+    # the last base of each block needs <= to be kept (see _handle_vcf_mutation).
     lines = pd.concat([chunk[(chunk['Ref'].str.len() == 1) & (chunk['Alt'].str.len() == 1) &
-                             (((chunk['Pos'] > s-1000) & (chunk['Pos'] < s+500) & (chunk['Chrom'] == c)) |
-                              ((chunk['Pos'] > e-500) & (chunk['Pos'] < e+1000) & (chunk['Chrom'] == c)))]
+                             (((chunk['Pos'] > s-1000) & (chunk['Pos'] <= s+500) & (chunk['Chrom'] == c)) |
+                              ((chunk['Pos'] > e-500) & (chunk['Pos'] <= e+1000) & (chunk['Chrom'] == c)))]
                        for chunk in iter_lines
                        for s, e, c in zip(gene_starts, gene_ends, gene_chroms)])
     return lines

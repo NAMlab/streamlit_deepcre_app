@@ -303,12 +303,16 @@ def _handle_vcf_mutation(gene_ids, gene_starts, gene_ends, gene_chroms, gene_str
         df["Region"] = region_label_plus if strand == "+" else region_label_minus
         return df
 
+    # Pos is 1-based while prom_end/term_end are 0-based exclusive bounds, so a
+    # variant on the last base of either block (start + utr_len, end + 1000) is
+    # only kept with <=. With that, Pos > *_start also rules out Pos == *_start,
+    # which is what the "if pos != *_start else 0" cases below would catch.
     snps_prom = _tag_snps(
-        (vcf_df["Pos"] > prom_start) & (vcf_df["Pos"] < prom_end) & (vcf_df["Chrom"] == chrom),
+        (vcf_df["Pos"] > prom_start) & (vcf_df["Pos"] <= prom_end) & (vcf_df["Chrom"] == chrom),
         "Promoter", "Terminator",
     )
     snps_term = _tag_snps(
-        (vcf_df["Pos"] > term_start) & (vcf_df["Pos"] < term_end) & (vcf_df["Chrom"] == chrom),
+        (vcf_df["Pos"] > term_start) & (vcf_df["Pos"] <= term_end) & (vcf_df["Chrom"] == chrom),
         "Terminator", "Promoter",
     )
 
