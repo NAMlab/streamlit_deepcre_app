@@ -1,1 +1,3 @@
 *.pyc
+# tutorial screenshots are generated per deployment, not versioned
+images/tutorial_*.png

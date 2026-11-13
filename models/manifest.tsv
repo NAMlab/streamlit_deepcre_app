@@ -1,0 +1,37 @@
+file	version	kind	species_or_set	tissue	fold_or_held_out	label	sha256
+Arabidopsis_thaliana_leaf_v26J.h5	v26J	single-species	Arabidopsis thaliana	leaf	NC_003070.9	Arabidopsis thaliana (leaf)	712082b710dec213e19ada23db0bc2de120de9202682238c59465e62e1a94a1b
+Arabidopsis_thaliana_root_v26J.h5	v26J	single-species	Arabidopsis thaliana	root	NC_003074.8	Arabidopsis thaliana (root)	91575d5cc886cb1c0d9a6a67c6f9542b7648da02b5973c43fb8c1f63aec67ed1
+Camelina_sativa_leaf_v26J.h5	v26J	single-species	Camelina sativa	leaf	NC_025704.1	Camelina sativa (leaf)	58a49f939b927b9d500a88971091f6049d7edb3f269e820107489d6f7a481806
+Camelina_sativa_root_v26J.h5	v26J	single-species	Camelina sativa	root	NC_025704.1	Camelina sativa (root)	227fca94a84c0b12a225af8cd13fe214fc4e649df4f52e2dfcd7b9150174c317
+Brassica_oleracea_leaf_v26J.h5	v26J	single-species	Brassica oleracea	leaf	NC_027755.1	Brassica oleracea (leaf)	015ebb12b98f1cd3bc9b94be3b6b763f7015ec1549fc9f1e4c7de875f17d394d
+Brassica_oleracea_root_v26J.h5	v26J	single-species	Brassica oleracea	root	NC_027750.1	Brassica oleracea (root)	3bff5c16a8cbdf4ec9b9f613b19effb5e9a88eb52a9276ff1bbe5f120a09a5ac
+Cucumis_sativus_leaf_v26J.h5	v26J	single-species	Cucumis sativus	leaf	NC_026656.2	Cucumis sativus (leaf)	d9b565cbb48130a7808ef1afc79be008821eb524de964bf8d70a4a92195bf010
+Cucumis_sativus_root_v26J.h5	v26J	single-species	Cucumis sativus	root	NC_026659.2	Cucumis sativus (root)	55e69c72c3b0df7e4c86d0b1fd743e437a4c53ceebe602ccd24252ba713ea257
+Glycine_max_leaf_v26J.h5	v26J	single-species	Glycine max	leaf	NC_016088.4	Glycine max (leaf)	48e068593c15a04713f193f330512707342b33319e5243959c0bf531912dd67e
+Glycine_max_root_v26J.h5	v26J	single-species	Glycine max	root	NC_038246.2	Glycine max (root)	3b56f90abfbc0f9281f62a6b154f0c0985cb61fa602c4832dff8a7c9c069e780
+Daucus_carota_leaf_v26J.h5	v26J	single-species	Daucus carota	leaf	NC_030383.1	Daucus carota (leaf)	9280b783ddbb428de15bdc1140529940de8c22e5068e265a30510cb3bbecfe7b
+Daucus_carota_root_v26J.h5	v26J	single-species	Daucus carota	root	NC_030386.1	Daucus carota (root)	035eae0e15ae55b41de6ae83fc5fed2b95b732e0ce9b04c87412387ca6526b90
+Solanum_lycopersicum_leaf_v26J.h5	v26J	single-species	Solanum lycopersicum	leaf	NC_015449.3	Solanum lycopersicum (leaf)	7419eb3d367ce672de64ea67508cfff262c1e7ba3b80bca380b7651c9d99fa8c
+Solanum_lycopersicum_root_v26J.h5	v26J	single-species	Solanum lycopersicum	root	NC_015447.3	Solanum lycopersicum (root)	e63b6011935beb1e97b2b526a525eab8e3b9f6872c57cdf40295bc0cf1514804
+Chenopodium_quinoa_leaf_v26J.h5	v26J	single-species	Chenopodium quinoa	leaf	NW_018745684.1	Chenopodium quinoa (leaf)	442d0f870749f5fe9a954d2d1ba12d64b00e1fbdad08747540ac66683f477b20
+Chenopodium_quinoa_root_v26J.h5	v26J	single-species	Chenopodium quinoa	root	NW_018745684.1	Chenopodium quinoa (root)	218413ed11641a90b2c12f0d0cd29cf348c0f635fb83e1d27b274c93858baf6a
+Beta_vulgaris_leaf_v26J.h5	v26J	single-species	Beta vulgaris	leaf	NC_064024.1	Beta vulgaris (leaf)	dc51d823de209599614a8d150429fe68c08a15c950c43fb50c63437943127bcf
+Beta_vulgaris_root_v26J.h5	v26J	single-species	Beta vulgaris	root	NC_064019.1	Beta vulgaris (root)	b8eb03f150635b2b7897ded75ef20867db69a5a5bdfd3536bd743ea7729ee430
+Oryza_sativa_leaf_v26J.h5	v26J	single-species	Oryza sativa	leaf	NC_029262.1	Oryza sativa (leaf)	59c32012d207920a0541b4edb9754d27c41f99d83e352305bc23e87a3256330e
+Oryza_sativa_root_v26J.h5	v26J	single-species	Oryza sativa	root	NC_029265.1	Oryza sativa (root)	8bda83a4ee1211bbe7a9ba5c91f052e0e6279f6605f806a43a28ae36d7eb8059
+Hordeum_vulgare_leaf_v26J.h5	v26J	single-species	Hordeum vulgare	leaf	NC_058524.1	Hordeum vulgare (leaf)	cf6f3905d3e45646248fe4e3beaa942ea483b54d3afcb32d0c78570f8f43fbb9
+Hordeum_vulgare_root_v26J.h5	v26J	single-species	Hordeum vulgare	root	NC_058521.1	Hordeum vulgare (root)	6cb6099241c4ae4128db7a2fc9a102c7ac536fef1a5e07b103f90e84251c852a
+Sorghum_bicolor_leaf_v26J.h5	v26J	single-species	Sorghum bicolor	leaf	NC_012879.2	Sorghum bicolor (leaf)	159cddd8ae53539ec20ca846254ae3be258a7a8519ac77a53efe8244b78cf6fa
+Sorghum_bicolor_root_v26J.h5	v26J	single-species	Sorghum bicolor	root	NC_012879.2	Sorghum bicolor (root)	2d1e456e4330a93bcdd7909ede11669befe45015c222e56c60b12ec71f1cadb4
+Zea_mays_leaf_v26J.h5	v26J	single-species	Zea mays	leaf	NC_050104.1	Zea mays (leaf)	7efcc923e29106ee5452069a0b8b0d68d4fdb79f419eef45b7bec2762f34dbb6
+Zea_mays_root_v26J.h5	v26J	single-species	Zea mays	root	NC_050103.1	Zea mays (root)	41ea6ab9bf01c20f3220f902c884d10057033cace20a5b13fe82cc55019ccc79
+MSR_all_species_leaf_v26J.h5	v26J	multi-species	all 13 species	leaf	held out: Brassica oleracea	all 13 species (leaf)	3b41896afa6dc66cbcdf920238ed614688778a23bf1e3b9969fb98d9ce40e783
+MSR_all_species_root_v26J.h5	v26J	multi-species	all 13 species	root	held out: Brassica oleracea	all 13 species (root)	438fd178a14d101bf3c3de85600e2604025f7a2e31f8ffb3f9327e4ace37acfa
+Arabidopsis_thaliana_leaf.h5	2024	single-species	Arabidopsis thaliana	leaf		Arabidopsis thaliana (leaf)	0f73a6ae47f00c8faad4ddc24a42238b929af6f57680c3e03f37619413edcef5
+Arabidopsis_thaliana_root.h5	2024	single-species	Arabidopsis thaliana	root		Arabidopsis thaliana (root)	b13a65831e14895bdc157914178139710a165341fb0b88326fe0e7fe85580abd
+Solanum_lycopersicum_leaf.h5	2024	single-species	Solanum lycopersicum	leaf		Solanum lycopersicum (leaf)	03634490382d9ae58b7cf0157f0729068d07c20f8c78b3d2aafcec193a2445ec
+Solanum_lycopersicum_root.h5	2024	single-species	Solanum lycopersicum	root		Solanum lycopersicum (root)	38a59e11ac7a6567d58539f8f31ef79db1b13c97124e24a5a64809a7891dc8fc
+Sorghum_bicolor_leaf.h5	2024	single-species	Sorghum bicolor	leaf		Sorghum bicolor (leaf)	4b231dc085d9e791ea796d9295a0dcf05a8a6999703a33c18d577ab98a5466dc
+Sorghum_bicolor_root.h5	2024	single-species	Sorghum bicolor	root		Sorghum bicolor (root)	1c8e637f2667adaa87fa8cf5507715369804f74c9d8c39a5a0796affaace0827
+Zea_mays_leaf.h5	2024	single-species	Zea mays	leaf		Zea mays (leaf)	78add70088669103145e323c200b21361843e8d13d728a36113da2df9c764a48
+Zea_mays_root.h5	2024	single-species	Zea mays	root		Zea mays (root)	d27421e2b9ea4b89fe91c3602286e3a6621a999f5222781397110b66ce2df800

@@ -3,6 +3,8 @@ import pandas as pd
 from datetime import datetime
 import altair as alt
 
+from lib.storage import currentModelId
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _section(label: str) -> None:
@@ -11,7 +13,9 @@ def _section(label: str) -> None:
 def _chart_title(title: str, subtitle: str) -> alt.TitleParams:
     return alt.TitleParams(
         title,
-        subtitle=[subtitle, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"],
+        subtitle=[subtitle,
+                  f"deepCRE model: {currentModelId()}",
+                  f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"],
         subtitleColor="#9ca3af",
         fontSize=13,
         subtitleFontSize=10,
@@ -28,8 +32,11 @@ def _color_enc(palette: list) -> alt.Color:
 
 
 @st.cache_data
-def _to_csv(df: pd.DataFrame) -> bytes:
-    return df.to_csv(index=False).encode("utf-8")
+def _to_csv(df: pd.DataFrame, model_id: str) -> bytes:
+    """CSV with the model written into every row, so the file is self-describing."""
+    out = df.copy()
+    out.insert(len(out.columns), "model", model_id)
+    return out.to_csv(index=False).encode("utf-8")
 
 
 # ── Public entry point ────────────────────────────────────────────────────────
@@ -67,8 +74,9 @@ def show_predictions_tab(
         )
         st.download_button(
             "Download table as CSV",
-            data=_to_csv(predictions),
-            file_name=f"deepcre_predictions_{datetime.now().strftime('%Y-%m-%d')}.csv",
+            data=_to_csv(predictions, currentModelId()),
+            file_name=f"deepcre_predictions_{currentModelId()}_"
+                      f"{datetime.now().strftime('%Y-%m-%d')}.csv",
             mime="text/csv",
         )
 

@@ -4,6 +4,14 @@ import zipfile
 import streamlit as st
 import pandas as pd
 
+from lib.ui.sidebar import request_widget_state, request_model
+
+# The sidebar entry the tutorial works with. If a deployment does not serve this
+# genome the request is ignored and the sidebar keeps the user's choice.
+TUTORIAL_ORGANISM = "Arabidopsis thaliana (TAIR10)"
+# the gene the promoter-swap step works on
+SWAP_GENE = "AT1G67090"
+
 # ── Helper Functions ─────────────────────────────────────────────────────────
 
 def get_tutorial_zip():
@@ -57,6 +65,25 @@ def load_tutorial_fasta(target_header):
         seq = "GCCCTCCCTCCGCTTCCAAAGAAACGCCCCCCATCGCCACTATATACATACCCCCCCTCTCCTCCCATCCCCCAACCCTACCACCACCACCACCACCACCTCCACCTCCTCCCCCCTCGCTGCCGGACGACGAGCTCCTCCCCCCTCCCCCTCCGCCGCCGCCGCGCCGGTAACCACCCCGCCCCTCTCCTCTTTCTTTCTCCGTTTTTTTTTTCCGTCTCGGTCTCGATCTTTGGCCTTGGTAGTTTGGGTGGGCGAGAGGCGGCTTCGTGCGCGCCCAGATCGGTGCGCGGGAGGGGCGGGATCTCGCGGCTGGGGCTCTCGCCGGCGTGGATCCGGCCCGGATCTCGCGGGGAATGGGGCTCTCGGATGTAGATCTGCGATCCGCCGTTGTTGGGGGAGATGATGGGGGGTTTAAAATTTCCGCCATGCTAAACAAGATCAGGAAGAGGGGAAAAGGGCACTATGGTTTATATTTTTATATATTTCTGCTGCTTCGT"
     return seq
 
+def _figure(path: str, **kw) -> None:
+    """Show a tutorial screenshot if the deployment ships one.
+
+    Screenshots come as a light and a dark pair, `<name>_light.png` and
+    `<name>_dark.png`. Streamlit does not tell the server which theme the viewer
+    has chosen -- st.context.theme reports the browser's preference, which is not
+    the same thing -- so the pair is selected by the control in the tutorial
+    rather than guessed. A deployment that ships only one of the two, or an
+    unsuffixed file, still works: whatever is present is shown, and if nothing is
+    present the tutorial is text only.
+    """
+    theme = st.session_state.get("tutorial_shot_theme", "Light")
+    base, ext = os.path.splitext(path)
+    for candidate in (f"{base}_{theme.lower()}{ext}", path):
+        if os.path.exists(candidate):
+            st.image(candidate, **kw)
+            return
+
+
 # ── Main UI Function ─────────────────────────────────────────────────────────
 
 def show_tutorial_tab():
@@ -67,7 +94,22 @@ def show_tutorial_tab():
         with tutorial_header:
             st.subheader("Tutorial on the deepCRE toolkit:")
             
+        # The "Load …" buttons below rerun the whole app so that the widgets they
+        # drive pick the new values up. A rerun clears any message printed before
+        # it, so the message is carried across in session state and shown here.
+        notice = st.session_state.pop("tutorial_notice", None)
+        if notice:
+            st.success(notice)
+
         st.write("**Reproducing the deepCRE results sections of the gene promoter characterization**")
+        st.info(
+            "**While the toolkit is working:** the running indicator in the upper right "
+            "corner of the page shows that deepCRE is computing. Predictions and "
+            "importance scores take from a few seconds to a few minutes, and the page "
+            "stays quiet until they are finished. If a step looks stuck or a figure does "
+            "not appear, press **R** or reload the page — the app reruns and keeps your "
+            "input."
+        )
         st.write("""
         The aim of the Tutorial is to familiarize the users with its functions and potential applications.
         The code for this toolkit: https://github.com/NAMlab/streamlit_deepcre_app
@@ -96,13 +138,22 @@ def show_tutorial_tab():
 
         st.write("\n---\n")
 
+        # The screenshots below exist in a light and a dark version. Streamlit
+        # cannot tell the server which theme the viewer picked, so the choice is
+        # offered here; it only affects the screenshots, not the interface.
+        if any(os.path.exists(f"images/{n}_dark.png")
+               for n in ("guide_01_input", "guide_03_predictions")):
+            st.radio("Screenshots", ("Light", "Dark"), horizontal=True,
+                     key="tutorial_shot_theme",
+                     help="Match the screenshots to the theme you are using.")
+
         st.write("**1. Providing a query and selecting a deepCRE model**")
         st.write("""
         **1.1** The deepCRE toolkit requires a list of gene ids from one available reference organism. 
         The available reference organisms and models are shown on the Home Tab under Available genomes.
         """)
         
-        st.image('images/Slide1.jpg', width="stretch")
+        _figure('images/guide_01_input.png', width=380)  # a narrow sidebar shot; stretching it fills the page
 
         st.write("""
         Click on “Browse files” and upload File 1 from the Tutorial containing a list of matching gene ids 
@@ -121,14 +172,27 @@ def show_tutorial_tab():
         if st.button("Load Tutorial Genes & Set Model", type="primary"):
             st.session_state.tutorial_active = True
             st.session_state.tutorial_genes = load_tutorial_genes()
-            st.session_state.tutorial_model = "Arabidopsis_thaliana_leaf"
-            st.success("✅ Tutorial data loaded! Click the **Predictions** tab above to see the results.")
-            
+            # Seed the sidebar widgets instead of overriding them downstream, so
+            # the user can still change the model from the sidebar afterwards —
+            # which is exactly what step 2 of this tutorial asks them to do.
+            # Steps 1-3 reproduce Tutorial tables 1 and 2, which were computed
+            # with the Peleke et al., 2024 models, so the tutorial selects those.
+            request_model("Arabidopsis_thaliana_leaf")
+            request_widget_state(sidebar_organism=TUTORIAL_ORGANISM)
+            st.session_state.tutorial_notice = (
+                "Tutorial gene list loaded and the model set to Arabidopsis_thaliana_leaf. "
+                "Open the **Predictions** tab to see the results."
+            )
+            st.rerun()
+
         if st.session_state.get("tutorial_active"):
             if st.button("❌ Clear Tutorial Data", type="secondary", key="clear_genes_btn"):
                 st.session_state.tutorial_active = False
                 st.rerun()
         st.markdown("---")
+
+        st.write("Once the genes are loaded, the sidebar shows the selection and can still be changed:")
+        _figure('images/guide_02_model.png', width=380)  # a narrow sidebar strip; stretching it blows it up
 
         st.write("Alternatively, the user can always select 100 random genes from a selected genome in the sidebar.")
         
@@ -138,7 +202,7 @@ def show_tutorial_tab():
         The toolkit provides tabular and graphical output for the query genes, mainly highlighting genes that are 
         predicted to have low and high rates of transcription (pink and purple).
         """)
-        st.image('images/Slide2.jpg', width="stretch")
+        _figure('images/guide_03_predictions.png', width="stretch")
 
         st.write("""All tables and figures can be downloaded.""")
         if os.path.exists('data/Tutorial_table1_Atleaf.csv'):
@@ -148,7 +212,7 @@ def show_tutorial_tab():
         The toolkit should have produced figures. Options to further process the output should become visible
         by mouse-over. Please save outputs by clicking on the options.
         """)
-        st.image('images/Slide3.jpg', width="stretch")
+        _figure('images/tutorial_04_predictions_figures.png', width="stretch")
 
         st.write("""
         During the Predictions the chosen deepCRE model can be changed, without the query being lost. Please change
@@ -178,10 +242,10 @@ def show_tutorial_tab():
         averaged saliency map.
         """)
         st.write("""
-        The users can access saliency maps by clicking on the Tab “Saliency Maps”. This is how the user can produce figure
-        2e and 2f, switching between the At(leaf) and At(root) models.
+        The users can access saliency maps by clicking on the tab “Explanation”. Switching between the
+        At(leaf) and At(root) models shows how the importance profile differs between the two tissues.
         """)
-        st.image('images/Slide4.jpg', width="stretch")
+        _figure('images/guide_04_explanation.png', width="stretch")
 
         st.write("""
         The deepCRE toolkit provides more figures than shown in the results. The users have access to graphical output:\n
@@ -192,6 +256,7 @@ def show_tutorial_tab():
         Base-type average saliency map for lowly expressed genes\n
         Sum saliency score for lowly expressed gene\n
         """)
+        _figure('images/tutorial_06_explanation_more.png', width="stretch")
 
         st.write("\n---\n")
 
@@ -207,15 +272,14 @@ def show_tutorial_tab():
         manually change, e.g. copy-paste sequences from different sources and compare the effects to the query sequence 
         measured by change in predicted probability and saliency maps. 
         """)
-        st.image('images/Slide5.jpg', width="stretch")
+        _figure('images/guide_05_mutation.png', width="stretch")
         st.write("""
         To reproduce the results of the gene promoter characterization please select the Manual editing mode, gene of 
         interest AT1G67090, and the 5’UTR (gTUR) region as region of interest. 
         """)
-        st.image('images/Slide6.jpg', width="stretch")
         st.write("""
-        The coordinates can be changed that will be on display within the Text editing window after clicking on Submit. 
-        After the sequence has been edited, changes are confirmed by clicking onto Mutate. \n
+        The coordinates that are shown in the text editing window are changed by clicking “Apply”.
+        After the sequence has been edited, the change is confirmed by clicking “Mutate”. \n
         The coordinates should be set to  1001-1500 after selecting the 5’UTR (gTUR) region. Please open the 
         Tutorial File 2 and copy the sequence of the fasta to the gTUR section:
         """)
@@ -230,14 +294,23 @@ def show_tutorial_tab():
         if st.button("Load OsACT1 gTUR Sequence into Mutation Tab", type="primary"):
             st.session_state.tutorial_mutation_active = True
             st.session_state.tutorial_mut_seq = fasta_seq
-            
-            # Set the exact UI state for the Mutation tab
-            st.session_state.analysis_mode_radio = "**manual**"
-            st.session_state.mut_region_selection = "gTUR"
-            st.session_state.mut_coord_slider = (1001, 1500)
-            
-            st.success("✅ Sequence loaded! Click the **Mutation** tab above, ensure gene **AT1G67090** is selected, and your sequence will be ready in the text box.")
-            
+
+            # Set the exact UI state for the Mutation tab. The Mutation tab is a
+            # fragment, so it only picks these up on a full rerun — hence the
+            # queue and the st.rerun() below.
+            # The whole tutorial runs on the Peleke et al., 2024 models: every
+            # number and figure it reports was produced with them.
+            request_model("Arabidopsis_thaliana_leaf")
+            request_widget_state(analysis_mode_radio="**manual**",
+                                 mut_gene_select=SWAP_GENE,
+                                 mut_region_selection="gTUR",
+                                 mut_coord_slider=(1001, 1500))
+            st.session_state.tutorial_notice = (
+                "OsACT1 gTUR sequence loaded and applied. Open the **Mutation** tab "
+                "with gene **AT1G67090** selected to see the result."
+            )
+            st.rerun()
+
         if st.session_state.get("tutorial_mutation_active"):
             if st.button("❌ Clear Mutation Data", type="secondary", key="clear_mut_btn"):
                 st.session_state.tutorial_mutation_active = False
@@ -246,15 +319,17 @@ def show_tutorial_tab():
 
         st.write("""
         Paste this sequence into the target window for text editing of the deepCRE toolkit Mutation mode. 
-        After clicking onto Mutate new probabilities and saliency maps should be generated. The exchange of the gTUR 
-        should result in the generation of figure 3g and 3h.
+        After clicking “Mutate”, new probabilities and saliency maps are generated. The exchange of the
+        gTUR changes both the predicted probability and the importance profile over the swapped region.
+        How large the change is, and in which direction, depends on the gene and on the model that is
+        selected — the panel below the plots reports the difference.
         """)
-        st.image('images/Slide7.jpg', width="stretch")
+        _figure('images/tutorial_08_mutation_results.png', width="stretch")
 
         st.write("""
         The change in predicted probabilities is displayed below the plots. The exact predicted probability for the 
         sequence before (grey) and after (cyan) editing can be read out by mouse-over the barplot. To reproduce the 
-        results shown in the deepCRE toolkit manuscript, sequences in the supplementary file 2 were trimmed to sizes that
+        results reproducibly, the sequences in Tutorial File 2 were trimmed to sizes that
         can be copied to the webtool. To enable cross evaluation, the different models can be selected without the edited 
         sequence being changed. This accounts also for changes in the other selectable regions of interest. 
         """)
@@ -272,15 +347,17 @@ def show_tutorial_tab():
         st.markdown("**Try it out instantly:**")
         if st.button("Load VCF File & Switch to RAP2.12", type="primary"):
             st.session_state.tutorial_vcf_active = True
-            st.session_state.analysis_mode_radio = "**VCF**"
-            st.session_state.tutorial_vcf_gene = "AT1G53910" 
-            
-            # (I removed the auto-mutate flag here!)
-            
-            st.success("✅ VCF loaded! Click the **Mutation** tab above to select your SNPs.")
+            st.session_state.tutorial_vcf_gene = "AT1G53910"
+            request_model("Arabidopsis_thaliana_leaf")
+            request_widget_state(analysis_mode_radio="**VCF**")
+            st.session_state.tutorial_notice = (
+                "Tutorial VCF loaded. Open the **Mutation** tab, select gene "
+                "**AT1G53910** and tick the variants you want to apply."
+            )
+            st.rerun()
 
         st.markdown("---")
-        st.image('images/Slide9.jpg', width="stretch")
+        _figure('images/guide_06_variants.png', width="stretch")
         st.write("""
         The toolkit displays the uploaded vcf file and all variants found within the selected
         gene regions. From the latter, distinct variants can be tagged and will be displayed in a thief table containing
@@ -288,26 +365,25 @@ def show_tutorial_tab():
         column. After loading, please click on Mutate Sequence to perform predictions and explanation for gene variants. 
         """)
 
-        st.image('images/Slide10.png', width="stretch")
+        _figure('images/tutorial_10_vcf_selection.png', width="stretch")
 
         st.write("""
         This will generate a plot as output showing the change in predicted probability and the effect on single nucleotide
         importances. The dotted grey lines indicate the position of selected variants within the gene flanking regions. 
         The sequence with the lowest predicted probability belongs to the A. thaliana ecotype I-Cat0. These are the variants
-        found for this ecotype compared to A. thaliana col-0. The list of variants is provided as supplementary table 3.
+        found for this ecotype compared to A. thaliana Col-0. The list of variants is shown in the table below.
         Please select the following SNPs to generate a sequence similar to the I-Cat0 haplotype. 
         """)
         if os.path.exists('data/Tutorial_table3_icat.csv'):
             st.dataframe(pd.read_csv('data/Tutorial_table3_icat.csv'))
             
         st.write("The selection of the 17 SNPs of I-Cat0 results in a decrease of predicted probabilities of 12%")
-        st.image('images/Slide11.jpg', width="stretch")
         st.write("""
         The change in predicted probabilities can also be explained with just 9 SNPs of I-Cat0 resulting in a decrease 
         of predicted probabilities of 14%. Please remove the tick from all rows that are tagged as “no” contributors in 
         the table above and click onto mutate.
         """)
-        st.image('images/Slide12.jpg', width="stretch")
         st.write("""
-        The resulting plots should be similar to Figure 4b,c and d.
+        The resulting plots show the predicted probability of the reference and of the variant sequence
+        side by side, the importance profile of both, and the positions of the selected variants.
         """)

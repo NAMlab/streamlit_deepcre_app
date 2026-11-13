@@ -1,31 +1,27 @@
-## Included Models
+## Included models
 
-These deepCRE models are included in the app, they are trained on different species and with gene expression from different tissues, respectively.
-Below you can see the names of the models and at which time they were trained/created.
+Two generations of deepCRE models are served, 36 files in total. Both are kept
+on purpose: the tutorial and the published supplementary figures were produced
+with the 2024 models, so they stay reproducible on the platform, while the
+models of the current manuscript are what a user should choose for new work.
 
-| Filename                                | Date       | Time   |
-|-----------------------------------------|------------|--------|
-| Arabidopsis_thaliana_leaf.h5            | 24-11-04   | 11:05:01 |
-| Arabidopsis_thaliana_root.h5            | 24-11-04   | 11:11:20 |
-| Solanum_lycopersicum_leaf.h5            | 24-11-02   | 15:11:25 |
-| Solanum_lycopersicum_root.h5            | 24-11-02   | 15:28:29 |
-| Sorghum_bicolor_leaf.h5                 | 24-11-02   | 15:42:37 |
-| Sorghum_bicolor_root.h5                 | 24-11-02   | 15:53:15 |
-| Zea_mays_leaf.h5                        | 24-11-02   | 16:16:32 |
-| Zea_mays_root.h5                        | 24-11-02   | 16:41:26 |
-| Brassica_oleracea_leaf.h5               | 25-09-03   | 08:28:06 |
-| Brassica_oleracea_root.h5               | 25-09-03   | 08:28:06 |
-| Beta_vulgaris_leaf.h5                   | 25-09-03   | 08:28:06 |
-| Beta_vulgaris_root.h5                   | 25-09-03   | 08:28:06 |
-| Chenopodium_quinoa_leaf.h5              | 25-09-03   | 08:28:06 |
-| Chenopodium_quinoa_root.h5              | 25-09-03   | 08:28:06 |
-| Camelina_sativa_leaf.h5                 | 25-09-03   | 08:28:06 |
-| Camelina_sativa_root.h5                 | 25-09-03   | 08:28:06 |
-| Cucumis_sativus_leaf.h5                 | 25-09-03   | 08:28:06 |
-| Cucumis_sativus_root.h5                 | 25-09-03   | 08:28:06 |
-| Daucus_carota_leaf.h5                   | 25-09-03   | 08:28:06 |
-| Daucus_carota_root.h5                   | 25-09-03   | 08:28:06 |
-| Glycine_max_leaf.h5                     | 25-09-03   | 08:28:06 |
-| Glycine_max_root.h5                     | 25-09-03   | 08:28:06 |
-| Oryza_sativa_leaf.h5                    | 25-09-03   | 08:28:06 |
-| Oryza_sativa_root.h5                    | 25-09-03   | 08:28:06 |
+| set | files | naming | what it is |
+|---|---|---|---|
+| deepCRE 2026 — single species | 26 | `<Species>_<tissue>_v26J.h5` | 13 species x leaf/root, trained 2026-10-15 |
+| deepCRE 2026 — multi-species  | 2  | `MSR_all_species_<tissue>_v26J.h5` | all 13 species, *Brassica oleracea* held out |
+| Peleke et al., 2024           | 8  | `<Species>_<tissue>.h5` | *A. thaliana*, *S. lycopersicum*, *S. bicolor*, *Z. mays*, trained 2024-11-02/04 |
+
+`manifest.tsv` in this folder is the authoritative list and drives the model
+menu in the sidebar: one row per served file with its version, kind, species or
+training set, tissue, validation fold or held-out species, menu label and
+sha256. The app groups the menu by that table, so a species that a given set
+does not contain cannot be selected.
+
+**After any deployment the sha256 column must be re-checked against the files
+actually served.** That hash is what lets a reader verify that the models behind
+a published figure are the models on the platform; a manifest that no longer
+matches the deployment certifies nothing.
+
+The 16 round-2 models dated 2025-09-03, and the two *H. vulgare* files that were
+never deployed, were removed: no published result rests on them and the 2026
+models supersede them.
