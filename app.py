@@ -164,7 +164,7 @@ def _render_header() -> None:
     st.markdown(
         """
         <div class="deepcre-header">
-            <span class="logo"/span>
+            <span class="logo">🧬</span>
             <div>
                 <h1>deepCRE</h1>
                 <p>Predicting gene expression from cis-regulatory elements using deep learning</p>

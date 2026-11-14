@@ -1,3 +1,4 @@
+import hashlib
 import itertools
 from datetime import datetime
 
@@ -34,15 +35,37 @@ _REGION_SPANS = [
     (2020, 3020, "grey",          "gDR (gene downstream region)"),
 ]
 
+def _inline(df: pd.DataFrame) -> alt.Data:
+    """Embed a (small) DataFrame directly in the layer's spec.
+
+    Passing several DataFrames to a layered chart makes Altair register one named
+    dataset per layer. Streamlit then fails to repaint the chart when it is replaced
+    by a new one (e.g. after switching the model): axes only, marks appear on hover.
+    Inline data avoids that. Same fix as in lib/ui/mutation.py.
+    """
+    return alt.Data(values=df.to_dict("records"))
+
+
+def _chart_key(prefix: str, df: pd.DataFrame) -> str:
+    """Key that changes whenever the plotted data or the model changes.
+
+    A new key makes Streamlit build a fresh chart element instead of patching the
+    previous one in place, which is what leaves the plot blank until hovered.
+    """
+    h = hashlib.md5(pd.util.hash_pandas_object(df, index=False).values.tobytes())
+    h.update(currentModelId().encode())
+    return f"{prefix}_{h.hexdigest()[:12]}"
+
+
 def _region_layers() -> list[alt.Chart]:
     layers = []
     for x1, x2, color, tip in _REGION_SPANS:
         layers.append(
-            alt.Chart(pd.DataFrame({"x1": [x1], "x2": [x2]}))
+            alt.Chart(_inline(pd.DataFrame({"x1": [x1], "x2": [x2]})))
             .mark_rect(opacity=0.1)
             .encode(
-                x=alt.X("x1", scale=alt.Scale(domain=[1, 3021]), title="Nucleotide Position"),
-                x2="x2",
+                x=alt.X("x1:Q", scale=alt.Scale(domain=[1, 3021]), title="Nucleotide Position"),
+                x2="x2:Q",
                 color=alt.value(color),
                 tooltip=alt.value(tip),
             )
@@ -56,13 +79,13 @@ def _annotation_layer(text_y: float) -> alt.Chart:
         (2020, text_y, "TTS", "Transcription Termination Site"),
     ], columns=["Nucleotide Position", "Saliency Score", "marker", "description"])
     return (
-        alt.Chart(df)
+        alt.Chart(_inline(df))
         .mark_text(size=14, dx=-10, dy=0, align="center", fontWeight="bold")
         .encode(
-            x=alt.X("Nucleotide Position", scale=alt.Scale(domain=[1, 3021])),
+            x=alt.X("Nucleotide Position:Q", scale=alt.Scale(domain=[1, 3021])),
             y=alt.Y("Saliency Score:Q", title="Saliency Score"),
-            text="marker",
-            tooltip="description",
+            text="marker:N",
+            tooltip="description:N",
         )
     )
 
@@ -121,7 +144,7 @@ def _build_scatter(df: pd.DataFrame, title: str, subtitle: str,
 
 
 def _composite(layers: list, line_chart: alt.Chart, text_y: float) -> alt.LayerChart:
-    rule = alt.Chart(pd.DataFrame({"y": [0]})).mark_rule(strokeDash=[3, 3], color="black").encode(y=alt.Y("y:Q", title="Saliency Score"))
+    rule = alt.Chart(_inline(pd.DataFrame({"y": [0]}))).mark_rule(strokeDash=[3, 3], color="black").encode(y=alt.Y("y:Q", title="Saliency Score"))
     return alt.layer(*layers, line_chart, _annotation_layer(text_y), rule)
 
 
@@ -169,7 +192,8 @@ def show_saliency_tab(
             opacity_param=op,
         )
         chart = _composite(_region_layers(), line, text_y)
-        st.altair_chart(chart, use_container_width=True, theme=None)
+        st.altair_chart(chart, use_container_width=True, theme=None,
+                        key=_chart_key("sal_avg_line", avg_df))
         st.download_button(
             "Download average saliency CSV",
             data=_pivot_csv(avg_df, "Expression", currentModelId()),
@@ -201,7 +225,8 @@ def show_saliency_tab(
             color_field="Expression",
             color_scale=expr_scale,
         )
-        st.altair_chart(scatter, use_container_width=True, theme=None)
+        st.altair_chart(scatter, use_container_width=True, theme=None,
+                        key=_chart_key("sal_avg_scatter", scat_df.drop(columns=["Gene ID"])))
 
     # ── 2. Per-nucleotide base-type saliency maps ─────────────────────────────
     _section("Base-Type Saliency Maps")
@@ -234,7 +259,8 @@ def show_saliency_tab(
                 y_domain=[y_min, y_max],
             )
             chart = _composite(_region_layers(), line, text_y_base)
-            st.altair_chart(chart, use_container_width=True, theme=None)
+            st.altair_chart(chart, use_container_width=True, theme=None,
+                            key=_chart_key(f"sal_base_line_{label}", df))
             st.download_button(
                 f"Download {label} base-type saliency CSV",
                 data=_pivot_csv(df, "Base", currentModelId()),
@@ -245,10 +271,10 @@ def show_saliency_tab(
             )
 
     with base_scat_col:
-        for scores, probs, gids in [
+        for cls, (scores, probs, gids) in zip(("High", "Low"), [
             (actual_scores_high, p_h, g_h),
             (actual_scores_low,  p_l, g_l),
-        ]:
+        ]):
             if np.isnan(probs[0]):
                 continue
             n = len(probs)
@@ -265,4 +291,5 @@ def show_saliency_tab(
                 color_field="Base",
                 color_scale=base_scale,
             )
-            st.altair_chart(scatter, use_container_width=True, theme=None)
+            st.altair_chart(scatter, use_container_width=True, theme=None,
+                            key=_chart_key(f"sal_base_scatter_{cls}", df.drop(columns=["Gene ID"])))

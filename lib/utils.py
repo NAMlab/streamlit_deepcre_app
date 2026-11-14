@@ -87,7 +87,7 @@ def prepare_dataset(genome, annot, gene_list, upstream=1000, downstream=500, use
 
     if use_example:
         # If no genes are provided, we just show results for 100 random ones
-        gene_models_overlap = gene_models.sample(n=100)
+        gene_models_overlap = gene_models.sample(n=min(100, len(gene_models)))
     elif gene_list is not None:
         genes = gene_list
         if len(genes) > 1000:
@@ -170,6 +170,10 @@ def combine_mult_and_diffref(mult, orig_inp, bg_data):
     return to_return
 
 def compute_actual_hypothetical_scores(x, model):
+    # A class with no genes (e.g. every gene predicted high) has nothing to explain;
+    # DeepExplainer fails on an empty batch, so return an empty score array instead.
+    if len(x) == 0:
+        return np.zeros((0, 3020, 4), dtype=np.float32)
     model = load_model(model)
     shap.explainers.deep.deep_tf.op_handlers["AddV2"] = shap.explainers.deep.deep_tf.passthrough
     shap.explainers.deep.deep_tf.op_handlers["FusedBatchNormV3"] = shap.explainers.deep.deep_tf.linearity_1d(0)

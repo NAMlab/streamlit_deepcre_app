@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import hashlib
 import altair as alt
 
 from lib.storage import currentModelId
@@ -20,6 +21,15 @@ def _chart_title(title: str, subtitle: str) -> alt.TitleParams:
         fontSize=13,
         subtitleFontSize=10,
     )
+
+
+def _chart_key(prefix: str, df: pd.DataFrame) -> str:
+    """Key that changes with the data/model so Streamlit builds a fresh chart
+    instead of patching the old one in place (which can leave it blank until hovered)."""
+    h = hashlib.md5(pd.util.hash_pandas_object(df.drop(columns=["Gene ID"], errors="ignore"),
+                                               index=False).values.tobytes())
+    h.update(currentModelId().encode())
+    return f"{prefix}_{h.hexdigest()[:12]}"
 
 
 def _color_enc(palette: list) -> alt.Color:
@@ -93,7 +103,8 @@ def show_predictions_tab(
                 tooltip=["Chromosome:N", "count()"],
             )
         )
-        st.altair_chart(chart, use_container_width=True, theme=None)
+        st.altair_chart(chart, use_container_width=True, theme=None,
+                        key=_chart_key("pred_genes", predictions))
 
     # ── Expression class by chromosome ───────────────────────────────────────
     _section("Expression Class Distribution")
@@ -120,7 +131,8 @@ def show_predictions_tab(
                 tooltip=["Chromosome:N", "Expression:N", "Count:Q"],
             )
         )
-        st.altair_chart(chart_by_chrom, use_container_width=True, theme=None)
+        st.altair_chart(chart_by_chrom, use_container_width=True, theme=None,
+                        key=_chart_key("pred_by_chrom", data_agg))
 
     with hist_col:
         chart_prob_hist = (
@@ -140,7 +152,8 @@ def show_predictions_tab(
                 tooltip=["Expression:N", "count()"],
             )
         )
-        st.altair_chart(chart_prob_hist, use_container_width=True, theme=None)
+        st.altair_chart(chart_prob_hist, use_container_width=True, theme=None,
+                        key=_chart_key("pred_hist", predictions))
 
     # ── Gene size & GC content scatter plots ─────────────────────────────────
     _section("Gene Properties vs. Predicted Expression")
@@ -160,7 +173,8 @@ def show_predictions_tab(
                 tooltip=["Gene ID:N", "Expression:N", "Probability:Q", "Gene Size:Q"],
             )
         )
-        st.altair_chart(chart_size, use_container_width=True, theme=None)
+        st.altair_chart(chart_size, use_container_width=True, theme=None,
+                        key=_chart_key("pred_size", predictions))
 
     with gc_col:
         chart_gc = (
@@ -176,4 +190,5 @@ def show_predictions_tab(
                 tooltip=["Gene ID:N", "Expression:N", "Probability:Q", "GC Content:Q"],
             )
         )
-        st.altair_chart(chart_gc, use_container_width=True, theme=None)
+        st.altair_chart(chart_gc, use_container_width=True, theme=None,
+                        key=_chart_key("pred_gc", predictions))

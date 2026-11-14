@@ -166,7 +166,7 @@ def show_sidebar(available_species: list, available_genomes: pd.DataFrame, avail
     st.sidebar.markdown(
         """
         <div style="text-align:center;padding:0.6rem 0 0.2rem 0;">
-            <span style="font-size:2rem;"/span>
+            <span style="font-size:2rem;">🧬</span>
             <div style="font-size:1.05rem;font-weight:700;color:#4F1787;margin-top:2px;">deepCRE</div>
             <div style="font-size:0.72rem;color:#9ca3af;">CRE expression predictor</div>
         </div>

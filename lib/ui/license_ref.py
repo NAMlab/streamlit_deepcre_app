@@ -9,7 +9,7 @@ def show_license_ref():
         st.write("Forschungszentrum Jülich GmbH D-52425 Jülich, Germany")
         st.markdown(
             """
-            Lab: <a href="https://www.szymanskilab.com/"
+            Lab: <a href="https://www.ipk-gatersleben.de/en/research/molecular-genetics/network-analysis-and-modelling"
             style="text-decoration: none; color: #0F42C0;">SZYMANSKI LAB</a>
             <br>
             If you encounter any problems, please open an issue on
